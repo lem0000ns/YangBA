@@ -20,9 +20,9 @@ Additionally, there is a custom bonus stat called "OPI" (Offensive Performance I
 
 ![ezgif com-speed](https://github.com/user-attachments/assets/b4681013-9f44-4313-ae83-4050a5281798)
 
-### Player profile for Immanuel Quickley
+### Player profile for Lebron James
 
-![ezgif com-speed (1)](https://github.com/user-attachments/assets/2d7d2ae2-93eb-4a96-a804-f6069406e4e5)
+![ezgif com-speed (1)](https://github.com/user-attachments/assets/6c7015b9-9143-43cf-81f8-0c53a41c665c)
 
 ## Backend + Frontend Development
 
