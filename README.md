@@ -1,6 +1,6 @@
-## YangBA Data Fetcher (Backend)
+# YangBA Data Fetcher (Backend)
 
-This is the backend repository for the YangBA Data Fetcher, where all player/game data is retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. This repository also handles route handling from AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
+All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. This repository also handles route handling from AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
 
 There are currently three different types of functionalities that the YangBA supports: Stats, Games, and Rank.
 
@@ -18,7 +18,7 @@ JSON, Requests, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Clou
 
 # YangBA Data Fetcher (frontend)
 
-This repository is for the frontend aspect of the YangBA Data Fetcher website, primarily implemented using React + Typescript. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, there is the "Stats," "Games," and "Rank" component that queries a specific stat from an individual player, lists out different statlines that satisfy given criteria, and ranks players based on given criteria, respectively.
+React.js and HTML/CSS were primarily used in frontend development. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, there is the "Stats," "Games," and "Rank" component that queries a specific stat from an individual player, lists out different statlines that satisfy given criteria, and ranks players based on given criteria, respectively.
 
 There is also a page for example queries in case the user wants to get some inspiration or have a clearer understanding of what the project entails. Furthermore, there is an option to search for different players on the navbar, resulting in a unique player profile. The layout has a purple + dark blue theme, with a dark image in the background of each page for visual effects as well.
 
