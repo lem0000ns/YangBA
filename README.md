@@ -1,6 +1,6 @@
-# YangBA Data Fetcher (Backend)
+# YangBA
 
-All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. This repository also handles route handling from AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
+Welcome to the YangBA! This site provide data-driven insights into different facets of the NBA, including a player ranking system and individual player statistics given a set of criteria. Unique player profiles are also featured, containing information such as each player's career awards, teams played on, body measurements, and more.
 
 There are currently three different types of functionalities that the YangBA supports: Stats, Games, and Rank.
 
@@ -10,23 +10,15 @@ There are currently three different types of functionalities that the YangBA sup
 
 Additionally, there is a custom bonus stat called "OPI" (Offensive Performance Index) that was created to place a single value for a particular player's statline. Factors that contribute to OPI include points, efficiency, assists, turnovers, minutes played, and total points scored by the team. OPI values were normalized such that all values fall between 0 to 1.
 
-Frontend can be found here --> https://github.com/lem0000ns/yba_frontend
+## Backend + Frontend Development
 
-## Tech Stack
-
-JSON, Requests, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2), Threading
-
-# YangBA Data Fetcher (frontend)
+All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. API routes are handled by AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
 
 React.js and HTML/CSS were primarily used in frontend development. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, there is the "Stats," "Games," and "Rank" component that queries a specific stat from an individual player, lists out different statlines that satisfy given criteria, and ranks players based on given criteria, respectively.
 
-There is also a page for example queries in case the user wants to get some inspiration or have a clearer understanding of what the project entails. Furthermore, there is an option to search for different players on the navbar, resulting in a unique player profile. The layout has a purple + dark blue theme, with a dark image in the background of each page for visual effects as well.
-
-Backend can be found here --> https://github.com/lem0000ns/yba_backend
-
 ## Tech Stack
 
-FontAwesome, React Router, Bootstrap, React Tooltip, Axios, Google Fonts API, NPM
+Bootstrap, Axios, NPM, JSON, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2), Threading
 
 ## Images
 
