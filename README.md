@@ -14,7 +14,7 @@ Additionally, there is a custom bonus stat called "OPI" (Offensive Performance I
 
 ### home page, examples page
 
-![ezgif com-speed](file:///Users/lemons/Downloads/ezgif.com-speed.gif)
+![ezgif com-speed](https://github.com/user-attachments/assets/690b0e02-57b1-46db-b7bc-f1b16196c381)
 
 ### example of using "stats" tool to query Stephen Curry's average points per game in 2017 (includes all games)
 
