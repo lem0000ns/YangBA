@@ -12,15 +12,15 @@ Additionally, there is a custom bonus stat called "OPI" (Offensive Performance I
 
 ## Images
 
-### home page, examples page
+### Home page, examples page
 
 ![ezgif com-speed](https://github.com/user-attachments/assets/690b0e02-57b1-46db-b7bc-f1b16196c381)
 
-### example of using "stats" tool to query Stephen Curry's average points per game in 2017 (includes all games)
+### Stephen Curry's average points per game in 2017 (includes all games)
 
-![ezgif com-speed](https://github.com/user-attachments/assets/75ac120c-e91f-467b-a24e-f89f09085b1f)
+![ezgif com-speed](https://github.com/user-attachments/assets/b4681013-9f44-4313-ae83-4050a5281798)
 
-### player profile for Immanuel Quickley
+### Player profile for Immanuel Quickley
 
 ![ezgif com-speed (1)](https://github.com/user-attachments/assets/2d7d2ae2-93eb-4a96-a804-f6069406e4e5)
 
