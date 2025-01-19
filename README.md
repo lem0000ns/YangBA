@@ -10,16 +10,6 @@ There are currently three different types of functionalities that the YangBA sup
 
 Additionally, there is a custom bonus stat called "OPI" (Offensive Performance Index) that was created to place a single value for a particular player's statline. Factors that contribute to OPI include points, efficiency, assists, turnovers, minutes played, and total points scored by the team. OPI values were normalized such that all values fall between 0 to 1.
 
-## Backend + Frontend Development
-
-All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. API routes are handled by AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
-
-React.js and HTML/CSS were primarily used in frontend development. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, there is the "Stats," "Games," and "Rank" component that queries a specific stat from an individual player, lists out different statlines that satisfy given criteria, and ranks players based on given criteria, respectively.
-
-## Tech Stack
-
-Bootstrap, Axios, NPM, JSON, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2), Threading
-
 ## Images
 
 ### home page, examples page
@@ -33,3 +23,13 @@ Bootstrap, Axios, NPM, JSON, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API 
 ### player profile for Immanuel Quickley
 
 ![ezgif com-speed (1)](https://github.com/user-attachments/assets/2d7d2ae2-93eb-4a96-a804-f6069406e4e5)
+
+## Backend + Frontend Development
+
+All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. API routes are handled by AWS API Gateway, in which it reads a series of query string parameters and returns a result based on those parameters.
+
+React.js and HTML/CSS were primarily used in frontend development. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, there is the "Stats," "Games," and "Rank" component that queries a specific stat from an individual player, lists out different statlines that satisfy given criteria, and ranks players based on given criteria, respectively.
+
+## Tech Stack
+
+Bootstrap, Axios, NPM, JSON, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2), Threading
