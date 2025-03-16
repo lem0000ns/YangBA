@@ -8,7 +8,7 @@
 }
 
 * {
-  font-family:'Gill Sans'
+  font-family: "Gill Sans";
 }
 
 html {
@@ -28,7 +28,7 @@ body {
 /* Multiselect */
 
 .form-select-header {
-  margin-top: 15px
+  margin-top: 15px;
 }
 
 .form-select-container {
@@ -82,7 +82,7 @@ body {
 }
 
 td {
-  padding: 15px
+  padding: 15px;
 }
 
 .content-table {
@@ -95,14 +95,14 @@ td {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
   margin-left: auto;
   margin-right: auto;
-  text-align: center
+  text-align: center;
 }
 
 .content-table thead tr {
   background-color: #deb8fffe;
   color: #000000;
   text-align: center;
-  font-weight: bold
+  font-weight: bold;
 }
 
 .content-table th,
@@ -111,31 +111,30 @@ td {
 }
 
 .content-table tr:nth-of-type(even):hover {
-  background-color: #e0e0ff
+  background-color: #e0e0ff;
 }
 
 .content-table tr:nth-of-type(odd):hover {
-  background-color: #e0e0ff
+  background-color: #e0e0ff;
 }
 
 .content-table tbody tr {
-  border-bottom: 1px solid #dddddd
+  border-bottom: 1px solid #dddddd;
 }
 
 .content-table tbody tr:nth-of-type(even) {
-  background-color: #f3f3f3
+  background-color: #f3f3f3;
 }
 
 .content-table tbody tr:nth-of-type(odd) {
-  background-color: #eeedfe
+  background-color: #eeedfe;
 }
 
 .content-table tbody tr:last-of-type {
-  border-bottom: 2px solid #7c23c5fe
+  border-bottom: 2px solid #7c23c5fe;
 }
 
 /* Images */
-
 
 .image {
   width: 450px; /* Set the width of the image */
@@ -172,7 +171,7 @@ td {
 .autocomplete-wrapper {
   width: 250px;
   margin: 0 auto;
-  position: relative
+  position: relative;
 }
 
 .suggestions-list {
@@ -194,7 +193,7 @@ td {
 .suggestions-list li {
   padding: 8px;
   cursor: pointer;
-  color:rgba(0, 0, 0)
+  color: rgba(0, 0, 0);
 }
 
 .suggestions-list li:hover {
@@ -224,22 +223,22 @@ td {
 .statsInfo {
   text-shadow: 2px 2px 4px rgb(36, 4, 74);
   margin: 10px;
-  color: rgb(190, 118, 248)
+  color: rgb(190, 118, 248);
 }
 
 .statsResult {
   text-shadow: 2px 2px 4px rgba(138, 69, 178, 1);
   margin: 10px;
   font-weight: bold;
-  font-family:'Gill Sans';
-  color: rgb(190, 118, 248)
+  font-family: "Gill Sans";
+  color: rgb(190, 118, 248);
 }
 
 .percentile {
   margin: 10px;
   font-weight: bold;
   text-shadow: 2px 2px 4px rgba(138, 69, 178, 0.5);
-  color: rgb(190, 118, 248)
+  color: rgb(190, 118, 248);
 }
 
 * {
@@ -250,10 +249,12 @@ td {
 
 /* Navbar decoration */
 
-li, a, button {
+li,
+a,
+button {
   font-weight: 500;
   font-size: 16px;
-  text-decoration: none !important
+  text-decoration: none !important;
 }
 
 nav {
@@ -272,7 +273,7 @@ nav ul {
 }
 
 nav ul li {
- list-style: none; 
+  list-style: none;
 }
 
 nav ul li a {
@@ -302,43 +303,43 @@ nav .menu span {
 }
 
 nav .menu:hover {
-  cursor: pointer
+  cursor: pointer;
 }
-
 
 .YangBA-header {
   font-weight: bold;
-  color:rgb(250, 250, 250);
+  color: rgb(250, 250, 250);
 }
 
 @media (max-width: 800px) {
   nav .nav_links {
     display: none; /* Hide nav links on small screens */
   }
-  
+
   nav .menu {
     display: flex; /* Show the menu icon on small screens */
   }
 
   nav {
-      flex-direction: column;
-      height: auto;
+    flex-direction: column;
+    height: auto;
   }
 
   nav ul {
-      display: none; /* Initially hide the menu items */
-      flex-direction: row;
-      width: 100%;
-      list-style: none;
+    margin-left: 64px;
+    display: none; /* Initially hide the menu items */
+    flex-direction: row;
+    width: 100%;
+    list-style: none;
   }
 
   nav ul.open {
-      display: flex; /* Show menu items when 'open' class is added */
+    display: flex; /* Show menu items when 'open' class is added */
   }
 
   nav ul li {
-      width: 100%;
-      text-align: center;
+    width: 100%;
+    text-align: center;
   }
 
   .basicInfo-image-container {
@@ -357,10 +358,12 @@ nav ul li a {
 }
 
 nav ul li a:hover {
-color: #14ce6d;
+  color: #14ce6d;
 }
 
-ol, ul, dl {
+ol,
+ul,
+dl {
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -374,11 +377,11 @@ ol, ul, dl {
 
 .nav_links_items {
   font-size: 24pt;
-  color: #ffffff
+  color: #ffffff;
 }
 
 .nav_links a::before {
-  content: '';
+  content: "";
   display: block;
   height: 5px;
   background-color: #14ce6d;
@@ -393,13 +396,13 @@ ol, ul, dl {
 /* Other Stuff */
 
 .btn.btn-light {
-  margin-top: 10px
+  margin-top: 10px;
 }
 
 .input-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px
+  gap: 8px;
 }
 
 .input-tags ul {
@@ -433,11 +436,11 @@ ol, ul, dl {
 }
 
 .delete-filter::before {
-  content: '×'; /* Unicode character for the multiplication sign */
+  content: "×"; /* Unicode character for the multiplication sign */
 }
 
 .select-team {
-  margin-top: 20px
+  margin-top: 20px;
 }
 
 /* Dropdown stuff */
@@ -445,7 +448,7 @@ ol, ul, dl {
 .dropdown-container {
   display: inline-block;
   flex-direction: column; /* Arrange children in a column */
-  align-items: center;    /* Center children horizontally */
+  align-items: center; /* Center children horizontally */
   margin: 15px;
 }
 
@@ -454,7 +457,7 @@ ol, ul, dl {
   display: none; /* Hidden by default */
   color: rgb(230, 246, 246);
   max-height: 250px;
-  overflow-y: scroll
+  overflow-y: scroll;
 }
 
 .dropdown-items {
@@ -462,7 +465,7 @@ ol, ul, dl {
   display: inline-block;
   padding: 10px;
   border-radius: 4px;
-  cursor: pointer
+  cursor: pointer;
 }
 
 .dropdown-items:hover {
@@ -479,11 +482,11 @@ ol, ul, dl {
 .OPI-container {
   display: flex;
   justify-content: space-between;
-  align-items: center
+  align-items: center;
 }
 
 .OPI-info:hover {
-  cursor: pointer
+  cursor: pointer;
 }
 
 .OPI-modal {
@@ -497,7 +500,7 @@ ol, ul, dl {
   margin-left: 2rem;
   margin-right: 2rem;
   margin-top: 1rem;
-  color: white
+  color: white;
 }
 
 .player-profile-basicInfo {
@@ -506,7 +509,7 @@ ol, ul, dl {
   border: 1px solid white;
   padding: 0.5rem;
   border-radius: 10%;
-  background-color: rgba(0, 0, 0, 0.5)
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .player-profile-intro {
@@ -541,13 +544,13 @@ ol, ul, dl {
   height: 100vh;
   background-image: url("./content/images/curry_giannis.png");
   background-size: cover;
-  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7)
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7);
 }
 
 .opimodal:hover {
   cursor: pointer;
   color: rgb(181, 117, 237);
-  transition: 0.3s all ease
+  transition: 0.3s all ease;
 }
 
 /* rank background */
@@ -558,7 +561,7 @@ ol, ul, dl {
   height: 100vh;
   background-image: url("./content/images/lebron_mj.png");
   background-size: cover;
-  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7)
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7);
 }
 
 .rank-dropdowns1 {
@@ -583,7 +586,7 @@ ol, ul, dl {
   height: 100vh;
   background-image: url("./content/images/dame_gw.jpg");
   background-size: cover;
-  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7)
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7);
 }
 
 /* navbar search */
@@ -616,6 +619,6 @@ ol, ul, dl {
   background: transparent;
   border: none;
   cursor: pointer;
-  color:rgb(47, 0, 101); /* Or your desired color */
+  color: rgb(47, 0, 101); /* Or your desired color */
   font-size: 16px; /* Adjust size as needed */
 }

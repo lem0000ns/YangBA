@@ -35,7 +35,10 @@ const Navbar = () => {
         <span></span>
         <span></span>
       </div>
-      <ul className={menuOpen ? "open" : "test"}>
+      <ul
+        style={{ marginLeft: "128px" }}
+        className={menuOpen ? "open" : "test"}
+      >
         <li>
           <a
             className="nav_links_items"
