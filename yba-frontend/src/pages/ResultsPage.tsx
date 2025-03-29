@@ -221,7 +221,14 @@ const ResultsPage = ({ path }: Props) => {
 
   if (path == "games" && (!result || !statInfo)) {
     return (
-      <div style={{ color: "white", marginTop: "200px", fontSize: "36px" }}>
+      <div
+        style={{
+          color: "white",
+          paddingTop: "15vh",
+          paddingLeft: "15vw",
+          fontSize: "36px",
+        }}
+      >
         Loading...
       </div>
     );
@@ -239,7 +246,14 @@ const ResultsPage = ({ path }: Props) => {
   if (path === "stats") {
     if (!result || !statInfo) {
       return (
-        <div style={{ color: "white", marginTop: "200px", fontSize: "36px" }}>
+        <div
+          style={{
+            color: "white",
+            paddingTop: "15vh",
+            paddingLeft: "15vw",
+            fontSize: "36px",
+          }}
+        >
           Loading...
         </div>
       );
@@ -262,7 +276,14 @@ const ResultsPage = ({ path }: Props) => {
   if (path == "rank") {
     if (!result || !statInfo) {
       return (
-        <div style={{ color: "white", marginTop: "200px", fontSize: "36px" }}>
+        <div
+          style={{
+            color: "white",
+            paddingTop: "15vh",
+            paddingLeft: "15vw",
+            fontSize: "36px",
+          }}
+        >
           Loading...
         </div>
       );

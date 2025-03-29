@@ -69,7 +69,10 @@ const Example = ({ id, exampleSentence, details, path }: Props) => {
 
 const ExamplePage = () => {
   return (
-    <div className="example-page-container" style={{ marginTop: "50px" }}>
+    <div
+      className="example-page-container"
+      style={{ paddingTop: "10vh", paddingLeft: "20vw" }}
+    >
       <h2 style={{ opacity: "0.6" }}>Check out these examples!</h2>
       <h3 className="simple-examples">Some simple ones</h3>
 

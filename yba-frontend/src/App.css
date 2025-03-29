@@ -18,7 +18,8 @@ html {
 
 body {
   overflow: auto;
-  height: 100%;
+  height: 100vh;
+  width: 100vw;
   background-image: url("./content/images/curry_france.webp");
   background-size: cover;
   background-attachment: fixed;
@@ -83,6 +84,15 @@ body {
 
 td {
   padding: 15px;
+}
+
+.homepage-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15vh !important;
+  padding-left: 20vw;
 }
 
 .content-table {
@@ -177,7 +187,6 @@ td {
 .suggestions-list {
   display: flex;
   flex-direction: column;
-  position: absolute;
   left: 0;
   right: 0;
   border: 1px solid #ccc;
@@ -220,9 +229,13 @@ td {
 
 /*results*/
 
+.result {
+  padding-left: 20vw;
+}
+
 .statsInfo {
   text-shadow: 2px 2px 4px rgb(36, 4, 74);
-  margin: 10px;
+  padding-top: 10vh;
   color: rgb(190, 118, 248);
 }
 
@@ -261,11 +274,12 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(35deg, rgb(26, 3, 51), rgb(116, 72, 186));
+  background: rgb(86, 35, 168);
   padding: 2.5rem;
   height: 32px;
-  position: sticky;
+  position: fixed;
   width: 100%;
+  z-index: 1000;
 }
 
 nav ul {
@@ -286,7 +300,6 @@ nav ul li a {
 
 nav .menu {
   display: none;
-  position: absolute;
   top: 2.5rem;
   right: 2rem;
   flex-direction: column;
@@ -306,50 +319,93 @@ nav .menu:hover {
   cursor: pointer;
 }
 
+.Sidebar {
+  height: 100%;
+  width: 20vw;
+  background-color: rgba(26, 3, 51, 0.95);
+  position: fixed;
+  list-style: none;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 6rem;
+  padding-bottom: 18rem;
+}
+
+.Sidebar li {
+  padding: 1rem;
+  transition: background-color 0.3s ease;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  gap: 10px; /* Add space between icon and text */
+}
+
+.sidebar-stats:hover {
+  background-color: rgba(116, 72, 186, 0.3); /* Lighter purple */
+}
+
+.sidebar-games:hover {
+  background-color: rgba(116, 72, 186, 0.3);
+}
+
+.sidebar-rank:hover {
+  background-color: rgba(116, 72, 186, 0.3);
+}
+
+@media (max-width: 1000px) {
+  .Sidebar {
+    display: none;
+  }
+  .result {
+    padding-left: 0 !important;
+  }
+  .path_page {
+    padding-left: 0 !important;
+  }
+  .homepage-content {
+    padding-left: 0 !important;
+  }
+  .player-profile-container {
+    padding-left: 0 !important;
+  }
+  .example-page-container {
+    padding-left: 0 !important;
+  }
+}
+
+.Sidebar .fa-chart-simple {
+  color: #ffffff;
+  font-size: 24px;
+  transition: color 0.3s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+.Sidebar .fa-basketball {
+  color: #ffffff;
+  font-size: 24px;
+  transition: color 0.3s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+.Sidebar .fa-ranking-star {
+  color: #ffffff;
+  font-size: 24px;
+  transition: color 0.3s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/*OTHER*/
+
 .YangBA-header {
   font-weight: bold;
   color: rgb(250, 250, 250);
-}
-
-@media (max-width: 800px) {
-  nav .nav_links {
-    display: none; /* Hide nav links on small screens */
-  }
-
-  nav .menu {
-    display: flex; /* Show the menu icon on small screens */
-  }
-
-  nav {
-    flex-direction: column;
-    height: auto;
-  }
-
-  nav ul {
-    margin-left: 64px;
-    display: none; /* Initially hide the menu items */
-    flex-direction: row;
-    width: 100%;
-    list-style: none;
-  }
-
-  nav ul.open {
-    display: flex; /* Show menu items when 'open' class is added */
-  }
-
-  nav ul li {
-    width: 100%;
-    text-align: center;
-  }
-
-  .basicInfo-image-container {
-    display: flex;
-    flex-direction: column-reverse;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    gap: 2rem;
-  }
 }
 
 nav ul li a {
@@ -477,6 +533,8 @@ dl {
   justify-content: center;
   align-items: center;
   color: white !important;
+  margin-top: 15vh !important;
+  padding-left: 20vw;
 }
 
 .OPI-container {
@@ -497,10 +555,10 @@ dl {
 /* Player profile */
 
 .player-profile-container {
-  margin-left: 2rem;
+  padding-left: 20vw;
   margin-right: 2rem;
-  margin-top: 1rem;
   color: white;
+  padding: 5vh;
 }
 
 .player-profile-basicInfo {
@@ -589,36 +647,41 @@ dl {
   box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.7);
 }
 
+.search-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
 /* navbar search */
 .search-container {
   display: flex;
   position: relative;
   align-items: center;
+  width: 80%;
+  overflow-x: auto;
 }
 
 .search-bar {
-  width: 100%; /* Full width */
-  max-width: 400px; /* Limit maximum width */
-  padding: 8px 8px; /* Add padding for better spacing */
-  border: 1px solid #ccc; /* Border color and thickness */
-  border-radius: 4px; /* Rounded corners */
-  font-size: 16px; /* Increase font size for better readability */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-  outline: none; /* Remove default focus outline */
-}
-
-.search-bar:focus {
-  border-color: #e070e6; /* Highlight border color on focus */
-  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3); /* Enhance shadow on focus */
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 .magnifying-glass {
   position: absolute;
-  margin-top: 3px;
-  right: 10px; /* Adjust as needed */
+  right: 10px;
+  top: 16px;
   background: transparent;
   border: none;
   cursor: pointer;
-  color: rgb(47, 0, 101); /* Or your desired color */
-  font-size: 16px; /* Adjust size as needed */
+  color: rgb(47, 0, 101);
+  font-size: 16px;
+  z-index: 1001; /* Ensure it stays above suggestions */
 }

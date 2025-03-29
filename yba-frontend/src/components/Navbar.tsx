@@ -1,4 +1,4 @@
-import { Autocomplete } from "./All";
+import { Autocomplete, Sidebar } from "./All";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
@@ -21,55 +21,20 @@ const Navbar = () => {
 
   return (
     <nav>
-      <a href="/">
-        <h1 className="YangBA-header">YangBA</h1>
-      </a>
       <div
         className="menu"
         onClick={() => {
           setMenuOpen(!menuOpen);
-          console.log(menuOpen);
         }}
       >
         <span></span>
         <span></span>
         <span></span>
       </div>
-      <ul
-        style={{ marginLeft: "128px" }}
-        className={menuOpen ? "open" : "test"}
-      >
-        <li>
-          <a
-            className="nav_links_items"
-            href="/stats"
-            data-tooltip-id="my-tooltip-inline"
-            data-tooltip-content="Specific performance stats"
-          >
-            Stats
-          </a>
-        </li>
-        <li>
-          <a
-            className="nav_links_items"
-            href="/games"
-            data-tooltip-id="my-tooltip-inline"
-            data-tooltip-content="Per-game statlines"
-          >
-            Games
-          </a>
-        </li>
-        <li>
-          <a
-            className="nav_links_items"
-            href="/rank"
-            data-tooltip-id="my-tooltip-inline"
-            data-tooltip-content="Custom ranking system"
-          >
-            Rank
-          </a>
-        </li>
-      </ul>
+      <a href="/">
+        <h1 className="YangBA-header">YangBA</h1>
+      </a>
+      {menuOpen ? <Sidebar /> : null}
       <Tooltip
         id="my-tooltip-inline"
         style={{ backgroundColor: "rgb(179, 255, 179)", color: "#111" }}

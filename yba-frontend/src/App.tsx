@@ -1,4 +1,4 @@
-import { Navbar } from "./components/All.tsx";
+import { Navbar, Sidebar } from "./components/All.tsx";
 import {
   StatsForm,
   GamesForm,
@@ -65,38 +65,39 @@ function App() {
   return (
     <>
       <div className="body">
-        <Navbar />
+        <Sidebar />
+        <div className="content-container">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/examples" element={<ExamplePage />} />
 
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/examples" element={<ExamplePage />} />
-
-          <Route
-            path="/stats/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-            element={<ResultsPage path="stats" />}
-          />
-          <Route
-            path="/games/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-            element={<ResultsPage path="games" />}
-          />
-          <Route
-            path="/rank/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-            element={<ResultsPage path="rank" />}
-          />
-          <Route
-            path="/stats"
-            element={<StatsForm onSubmit={handleStatsSubmit} />}
-          />
-          <Route
-            path="/games"
-            element={<GamesForm onSubmit={handleGamesSubmit} />}
-          />
-          <Route
-            path="/rank"
-            element={<RankForm onSubmit={handleRankSubmit} />}
-          />
-          <Route path="/players/:name" element={<PlayerInfo />} />
-        </Routes>
+            <Route
+              path="/stats/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
+              element={<ResultsPage path="stats" />}
+            />
+            <Route
+              path="/games/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
+              element={<ResultsPage path="games" />}
+            />
+            <Route
+              path="/rank/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
+              element={<ResultsPage path="rank" />}
+            />
+            <Route
+              path="/stats"
+              element={<StatsForm onSubmit={handleStatsSubmit} />}
+            />
+            <Route
+              path="/games"
+              element={<GamesForm onSubmit={handleGamesSubmit} />}
+            />
+            <Route
+              path="/rank"
+              element={<RankForm onSubmit={handleRankSubmit} />}
+            />
+            <Route path="/players/:name" element={<PlayerInfo />} />
+          </Routes>
+        </div>
       </div>
     </>
   );
