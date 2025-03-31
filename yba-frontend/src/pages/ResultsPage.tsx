@@ -225,7 +225,7 @@ const ResultsPage = ({ path }: Props) => {
         style={{
           color: "white",
           paddingTop: "15vh",
-          paddingLeft: "15vw",
+          paddingLeft: "20vw",
           fontSize: "36px",
         }}
       >
@@ -250,7 +250,7 @@ const ResultsPage = ({ path }: Props) => {
           style={{
             color: "white",
             paddingTop: "15vh",
-            paddingLeft: "15vw",
+            paddingLeft: "20vw",
             fontSize: "36px",
           }}
         >
@@ -280,7 +280,7 @@ const ResultsPage = ({ path }: Props) => {
           style={{
             color: "white",
             paddingTop: "15vh",
-            paddingLeft: "15vw",
+            paddingLeft: "20vw",
             fontSize: "36px",
           }}
         >

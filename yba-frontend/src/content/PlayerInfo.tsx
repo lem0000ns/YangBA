@@ -52,7 +52,18 @@ const PlayerInfo = () => {
   }, [name]);
 
   if (!info) {
-    return <div>Loading...</div>;
+    return (
+      <div
+        style={{
+          color: "white",
+          paddingTop: "15vh",
+          paddingLeft: "20vw",
+          fontSize: "36px",
+        }}
+      >
+        Loading...
+      </div>
+    );
   }
 
   return (

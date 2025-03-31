@@ -14,46 +14,29 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSearch = (e: unknown) => {
-    console.log(e);
     if (nameValue == "") navigate("/");
     else navigate(`/players/${encodeURIComponent(nameValue)}`);
   };
 
   return (
-    <nav>
-      <div
-        className="menu"
-        onClick={() => {
-          setMenuOpen(!menuOpen);
-        }}
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <a href="/">
-        <h1 className="YangBA-header">YangBA</h1>
-      </a>
-      {menuOpen ? <Sidebar /> : null}
-      <Tooltip
-        id="my-tooltip-inline"
-        style={{ backgroundColor: "rgb(179, 255, 179)", color: "#111" }}
-        place={menuOpen ? "top" : "bottom"}
-      />
-      <form className="d-flex" role="search" onSubmit={(e) => handleSearch(e)}>
-        <div className="search-container">
-          <Autocomplete
-            possibleValues={allNames}
-            text=""
-            onChange={(value: string) => setNameValue(value)}
-            className="search-bar"
-          />
-          <button type="submit" className="magnifying-glass">
-            <FontAwesomeIcon icon={faMagnifyingGlass} />
-          </button>
+    <>
+      <nav>
+        <a href="/">
+          <h1 className="YangBA-header">YangBA</h1>
+        </a>
+        <div
+          className="menu"
+          onClick={() => {
+            setMenuOpen(!menuOpen);
+          }}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
-      </form>
-    </nav>
+      </nav>
+      <Sidebar menuOpen={menuOpen} />
+    </>
   );
 };
 

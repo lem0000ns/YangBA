@@ -65,6 +65,7 @@ function App() {
   return (
     <>
       <div className="body">
+        <Navbar />
         <Sidebar />
         <div className="content-container">
           <Routes>
