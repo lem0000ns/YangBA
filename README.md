@@ -14,15 +14,15 @@ Additionally, there is a custom bonus stat called "OPI" (Offensive Performance I
 
 ### Home page
 
-![Home page](./src/content/images/home_page.png)
+![Home page](./yba-frontend/src/content/images/home_page.png)
 
 ### Tyler Herro's average points per game in 2020 (includes all games)
 
-![Tyler Herro](./src/content/images/herro_pts.png)
+![Tyler Herro](./yba-frontend/src/content/images/herro_pts.png)
 
 ### Player profile for Dwight Powell
 
-![Dwight Powell](./src/content/images/powell_pfp.png)
+![Dwight Powell](./yba-frontend/src/content/images/powell_pfp.png)
 
 ## Backend + Frontend Development
 
