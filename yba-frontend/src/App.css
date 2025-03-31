@@ -8,7 +8,7 @@
 }
 
 * {
-  font-family: "Gill Sans";
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 html {
@@ -402,6 +402,7 @@ nav .menu:hover {
   .player-profile-container {
     padding-left: 2vw !important;
     padding-right: 2vw !important;
+    padding-top: 12vh !important;
   }
   .example-page-container {
     padding-left: 0 !important;

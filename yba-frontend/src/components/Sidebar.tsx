@@ -19,7 +19,6 @@ const Sidebar = ({ menuOpen }: SidebarProps) => {
   const navigate = useNavigate();
 
   const handleSearch = (e: unknown) => {
-    console.log(e);
     if (nameValue == "") navigate("/");
     else navigate(`/players/${encodeURIComponent(nameValue)}`);
   };
