@@ -32,4 +32,4 @@ React.js and HTML/CSS were primarily used in frontend development. When a user f
 
 ## Tech Stack
 
-Bootstrap, Axios, NPM, JSON, MySQL, Boto3, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2), Threading
+Bootstrap, MySQL, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2, Route 53, etc.), Namecheap
