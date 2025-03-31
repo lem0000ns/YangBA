@@ -1,4 +1,4 @@
-import { Navbar, Sidebar } from "./components/All.tsx";
+import { Navbar } from "./components/All.tsx";
 import {
   StatsForm,
   GamesForm,
@@ -66,7 +66,6 @@ function App() {
     <>
       <div className="body">
         <Navbar />
-        <Sidebar />
         <div className="content-container">
           <Routes>
             <Route path="/" element={<HomePage />} />

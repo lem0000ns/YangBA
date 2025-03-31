@@ -1,4 +1,3 @@
-import React from "react";
 import { Autocomplete } from "./All";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChartSimple } from "@fortawesome/free-solid-svg-icons";
@@ -11,14 +10,15 @@ import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   menuOpen: boolean;
+  setMenuOpen: (menuOpen: boolean) => void;
 }
 
-const Sidebar = ({ menuOpen }: SidebarProps) => {
+const Sidebar = ({ menuOpen, setMenuOpen }: SidebarProps) => {
   const allNames = namesList.split("\n");
   const [nameValue, setNameValue] = useState("");
   const navigate = useNavigate();
 
-  const handleSearch = (e: unknown) => {
+  const handleSearch = () => {
     if (nameValue == "") navigate("/");
     else navigate(`/players/${encodeURIComponent(nameValue)}`);
   };
@@ -40,7 +40,7 @@ const Sidebar = ({ menuOpen }: SidebarProps) => {
             <form
               className="search-form"
               role="search"
-              onSubmit={(e) => handleSearch(e)}
+              onSubmit={() => handleSearch()}
             >
               <div className="search-container">
                 <Autocomplete

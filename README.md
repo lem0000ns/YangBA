@@ -12,17 +12,17 @@ Additionally, there is a custom bonus stat called "OPI" (Offensive Performance I
 
 ## Images
 
-### Home page, examples page
+### Home page
 
-![ezgif com-speed](https://github.com/user-attachments/assets/690b0e02-57b1-46db-b7bc-f1b16196c381)
+![Home page](./src/content/images/home_page.png)
 
-### Stephen Curry's average points per game in 2017 (includes all games)
+### Tyler Herro's average points per game in 2020 (includes all games)
 
-![ezgif com-speed](https://github.com/user-attachments/assets/b4681013-9f44-4313-ae83-4050a5281798)
+![Tyler Herro](./src/content/images/herro_pts.png)
 
-### Player profile for Lebron James
+### Player profile for Dwight Powell
 
-![ezgif com-speed (1)](https://github.com/user-attachments/assets/6c7015b9-9143-43cf-81f8-0c53a41c665c)
+![Dwight Powell](./src/content/images/powell_pfp.png)
 
 ## Backend + Frontend Development
 
