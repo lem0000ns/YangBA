@@ -369,7 +369,7 @@ nav .menu:hover {
   .Sidebar.mobile-open {
     visibility: visible;
     display: flex;
-    width: 50%;
+    width: 70%;
     align-items: center;
     justify-content: center;
     position: fixed;
@@ -377,6 +377,10 @@ nav .menu:hover {
     left: 0;
     z-index: 1000;
     transform: translateX(0);
+
+    @media (min-width: 600px) {
+      width: 50%;
+    }
   }
 
   .Sidebar-menu-overlay {
@@ -406,6 +410,9 @@ nav .menu:hover {
   }
   .example-page-container {
     padding-left: 0 !important;
+    width: 90% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 }
 
