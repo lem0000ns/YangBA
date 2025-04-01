@@ -22,7 +22,7 @@ const StatsForm = ({ onSubmit }: Props) => {
   const allNames = namesList.split("\n");
   const [nameValue, setNameValue] = useState("");
   const [statValue, setStatValue] = useState("Select a stat");
-  const [aggValue, setAggValue] = useState("Select an aggregate function");
+  const [aggValue, setAggValue] = useState("Select a metric");
   const [seasons, setSeasons] = useState<string[]>([]);
   const [filters, setFilters] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -40,7 +40,7 @@ const StatsForm = ({ onSubmit }: Props) => {
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
-    statValue == "Select a stat" || aggValue == "Select an aggregate function"
+    statValue == "Select a stat" || aggValue == "Select a metric"
       ? setError("'Stat' and 'Agg' are required fields")
       : onSubmit(nameValue, statValue, aggValue, seasons, filters);
   };

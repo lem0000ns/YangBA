@@ -414,6 +414,10 @@ nav .menu:hover {
     margin-left: auto !important;
     margin-right: auto !important;
   }
+
+  .rank-dropdowns1 {
+    flex-direction: column !important;
+  }
 }
 
 .Sidebar .fa-chart-simple {

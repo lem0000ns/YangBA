@@ -54,7 +54,7 @@ interface Props {
 }
 
 const RankForm = ({ onSubmit }: Props) => {
-  const [aggValue, setAggValue] = useState("Select an aggregate function");
+  const [aggValue, setAggValue] = useState("Select a metric");
   const [statValue, setStatValue] = useState("Select a stat");
   const [order, setOrder] = useState("Select order");
   const [limit, setLimit] = useState(-1);
@@ -66,7 +66,7 @@ const RankForm = ({ onSubmit }: Props) => {
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
-    aggValue == "Select an aggregate function" ||
+    aggValue == "Select a metric" ||
     statValue == "Select a stat" ||
     order == "Select order" ||
     limit == -1
