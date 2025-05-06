@@ -211,7 +211,10 @@ const ResultsPage = ({ path }: Props) => {
 
   if (error) {
     return (
-      <div className="alert-container" style={{ marginTop: "100px" }}>
+      <div
+        className="alert-container"
+        style={{ paddingLeft: "20vw", paddingTop: "15vh" }}
+      >
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
