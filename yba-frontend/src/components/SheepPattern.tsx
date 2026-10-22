@@ -9,17 +9,20 @@ const placements = [
   { x: 88, y: 82, r: 4, o: 0.7 },
 ];
 
+/** Full-page repeating sheep background with parallax on scroll. */
 const SheepPattern = () => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
+    /** Updates the pattern vertical offset from scroll position. */
     const update = () => {
       frame = 0;
       const shift = (window.scrollY * 0.12) % TILE_H;
       ref.current?.style.setProperty("--pattern-shift", `${-shift}px`);
     };
+    /** Schedules a single animation frame update per scroll burst. */
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };

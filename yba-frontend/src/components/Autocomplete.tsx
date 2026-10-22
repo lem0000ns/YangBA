@@ -14,6 +14,7 @@ interface Props {
 
 const MAX_SUGGESTIONS = 8;
 
+/** Highlights the matching substring in suggestion text. */
 const highlight = (text: string, query: string) => {
   const index = text.toLowerCase().indexOf(query.toLowerCase());
   if (index == -1 || !query) return text;
@@ -26,6 +27,7 @@ const highlight = (text: string, query: string) => {
   );
 };
 
+/** Player name combobox with filtered suggestions and keyboard navigation. */
 const Autocomplete = ({
   possibleValues,
   onChange,
@@ -52,6 +54,7 @@ const Autocomplete = ({
 
   useClickOutside(wrapperRef, open, () => setOpen(false));
 
+  /** Applies a chosen suggestion and notifies the parent. */
   const select = (value: string) => {
     setInputValue(variant == "search" ? "" : value);
     setOpen(false);
@@ -59,6 +62,7 @@ const Autocomplete = ({
     onChange(value);
   };
 
+  /** Updates input state and opens the suggestion list while typing. */
   const handleTyping = (value: string) => {
     setInputValue(value);
     setHighlighted(0);
@@ -69,6 +73,7 @@ const Autocomplete = ({
     }
   };
 
+  /** Selects an exact name match when the field loses focus. */
   const handleBlur = () => {
     if (variant != "field" || selectedRef.current) return;
     const typed = inputValue.trim().toLowerCase();
@@ -76,6 +81,7 @@ const Autocomplete = ({
     if (typed && exact) select(exact);
   };
 
+  /** Handles arrow keys, Enter, and Escape for suggestion navigation. */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key == "ArrowDown") {
       e.preventDefault();
@@ -93,6 +99,7 @@ const Autocomplete = ({
     }
   };
 
+  /** Clears the input and resets the selected value. */
   const clear = () => {
     setInputValue("");
     setOpen(false);

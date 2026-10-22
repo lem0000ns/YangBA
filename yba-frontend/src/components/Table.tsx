@@ -14,6 +14,7 @@ interface Props<T> {
   rowKey: (row: T, index: number) => string | number;
 }
 
+/** Scrollable data table with configurable columns and row keys. */
 function Table<T extends Record<string, any>>({ columns, rows, rowKey }: Props<T>) {
   return (
     <div className="table-scroll">

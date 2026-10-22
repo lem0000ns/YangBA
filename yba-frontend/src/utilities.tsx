@@ -6,6 +6,7 @@ import {
   statLabel,
 } from "./constants";
 
+/** Build query string parameters for the Lambda API from form state. */
 function computeURL(
   name: string,
   stat: string,
@@ -51,6 +52,7 @@ function computeURL(
   return url;
 }
 
+/** Human-readable summary of the current query (shown on results). */
 function getStatInfo(
   name: string,
   stat: string,

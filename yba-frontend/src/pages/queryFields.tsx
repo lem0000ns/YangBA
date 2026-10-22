@@ -11,6 +11,7 @@ interface StatPickerProps {
   onFptsInfo: () => void;
 }
 
+/** Pill picker for query stats with an FPTS info trigger. */
 export const StatPicker = ({ value, onChange, onFptsInfo }: StatPickerProps) => (
   <PillGroup
     selected={value}
@@ -30,6 +31,7 @@ export const StatPicker = ({ value, onChange, onFptsInfo }: StatPickerProps) => 
   />
 );
 
+/** Hook state for opening the FPTS explainer modal from pickers. */
 export const useFptsInfo = () => {
   const [open, setOpen] = useState(false);
   return {
@@ -43,7 +45,9 @@ interface SeasonPickerProps {
   onChange: (seasons: string[]) => void;
 }
 
+/** Multi-select season pills with select-all and clear actions. */
 export const SeasonPicker = ({ value, onChange }: SeasonPickerProps) => {
+  /** Adds or removes a season from the selected list. */
   const toggle = (season: string) =>
     onChange(
       value.includes(season)
@@ -74,6 +78,7 @@ export const SeasonPicker = ({ value, onChange }: SeasonPickerProps) => {
   );
 };
 
+/** Formats selected seasons for compact display in query controls. */
 export const describeSeasons = (seasons: string[]) => {
   if (seasons.length == 0) return "";
   if (seasons.length == 1) return seasonLabel(seasons[0]);
@@ -89,6 +94,7 @@ interface TeamPickerProps {
   onChange: (team: string) => void;
 }
 
+/** Single-select grid of NBA team abbreviation pills. */
 export const TeamPicker = ({ value, onChange }: TeamPickerProps) => (
   <PillGroup
     columns={5}

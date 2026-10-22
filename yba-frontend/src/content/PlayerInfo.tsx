@@ -29,6 +29,7 @@ const facts: { key: string; label: string; parse: (value: string | undefined) =>
   { key: "college", label: "College", parse: parsePlace },
 ];
 
+/** Fetches and displays a player profile from the API. */
 const PlayerInfo = () => {
   const { name } = useParams();
   const [info, setInfo] = useState<any>();

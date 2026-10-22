@@ -4,6 +4,7 @@ interface Props {
   height?: number;
 }
 
+/** Mini line chart with fill and peak marker for a numeric series. */
 const Sparkline = ({ values, width = 160, height = 40 }: Props) => {
   if (values.length < 2) return null;
   const max = Math.max(...values);

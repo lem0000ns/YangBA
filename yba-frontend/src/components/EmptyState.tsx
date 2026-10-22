@@ -8,6 +8,7 @@ interface Props {
   tone?: "neutral" | "error";
 }
 
+/** Empty or error placeholder with title, message, and optional action. */
 const EmptyState = ({ title, message, action, tone = "neutral" }: Props) => (
   <div className={`empty-state tone-${tone}`}>
     <div className="empty-state-mark" aria-hidden="true">

@@ -16,7 +16,9 @@ interface Props {
   columns?: number;
 }
 
+/** Grouped toggle pills for single or multi-select choices. */
 const PillGroup = ({ options, selected, onChange, renderExtra, columns }: Props) => {
+  /** Returns whether the given option value is currently selected. */
   const isSelected = (value: string) =>
     Array.isArray(selected) ? selected.includes(value) : selected == value;
 

@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useLayoutEffect, useState } from "react";
 
-/* Positions a sliding highlight under the child marked with [data-active="true"]. */
+/** Positions a sliding highlight under the child marked with `[data-active="true"]`. */
 export function useSlidingIndicator(
   containerRef: RefObject<HTMLElement>,
   activeKey: unknown
@@ -30,6 +30,7 @@ export function useSlidingIndicator(
   return style;
 }
 
+/** Calls `onOutside` on pointer events outside `ref` while `active`, or on Escape. */
 export function useClickOutside(
   ref: RefObject<HTMLElement>,
   active: boolean,
@@ -54,6 +55,7 @@ export function useClickOutside(
   }, [ref, active, onOutside]);
 }
 
+/** Animate a number from zero to `target` (respects reduced-motion). */
 export function useCountUp(target: number | undefined, duration = 800) {
   const [value, setValue] = useState(0);
 

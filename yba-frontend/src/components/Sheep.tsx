@@ -3,7 +3,7 @@ interface ShapeProps {
   face?: string;
 }
 
-/* Side-view sheep drawn in a 40×28 box, facing right. */
+/** Side-view sheep SVG shapes for patterns and mascots. */
 export const SheepShape = ({
   wool = "currentColor",
   face = "currentColor",
@@ -37,6 +37,7 @@ interface MarkProps {
   title?: string;
 }
 
+/** Scaled sheep mascot SVG wrapper around SheepShape. */
 export const SheepMark = ({
   size = 40,
   className,
@@ -57,7 +58,7 @@ export const SheepMark = ({
   </svg>
 );
 
-/* Front-facing ram head used as the YangBA logo mark. */
+/** Front-facing ram head SVG used as the YangBA logo mark. */
 export const GoatMark = ({ size = 28, className, title }: MarkProps) => (
   <svg
     width={size}

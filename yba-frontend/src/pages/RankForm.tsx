@@ -24,6 +24,7 @@ interface Props {
   ) => void;
 }
 
+/** Form for building player leaderboard queries. */
 const RankForm = ({ onSubmit }: Props) => {
   const [aggValue, setAggValue] = useState("");
   const [statValue, setStatValue] = useState("");
@@ -37,6 +38,7 @@ const RankForm = ({ onSubmit }: Props) => {
   const [formKey, setFormKey] = useState(0);
   const fpts = useFptsInfo();
 
+  /** Validates required rank fields and submits the leaderboard query. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     aggValue == "" || statValue == "" || order == "" || limit == -1
@@ -44,6 +46,7 @@ const RankForm = ({ onSubmit }: Props) => {
       : onSubmit(aggValue, statValue, order, limit, team, seasons, stage, filters);
   };
 
+  /** Clears all rank form fields and validation errors. */
   const reset = () => {
     setAggValue("");
     setStatValue("");

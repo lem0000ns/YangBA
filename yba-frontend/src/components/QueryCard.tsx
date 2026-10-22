@@ -12,6 +12,7 @@ interface Props {
   children: ReactNode;
 }
 
+/** Form shell for query builders with preview, submit, and reset. */
 const QueryCard = ({ title, onSubmit, onReset, submitLabel, preview, error, children }: Props) => (
   <form className="query-card reveal" style={{ ["--d" as string]: "80ms" }} onSubmit={onSubmit} noValidate>
     <div className="query-card-header">

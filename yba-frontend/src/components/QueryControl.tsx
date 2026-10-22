@@ -13,10 +13,7 @@ interface Props {
   children: ReactNode | ((close: () => void) => ReactNode);
 }
 
-/*
- * A labelled query "slot". When `value` is provided the tile opens a popover
- * containing `children`; otherwise `children` render inline beneath the label.
- */
+/** Labelled query field tile with inline or popover editor content. */
 const QueryControl = ({
   label,
   required = false,
@@ -31,6 +28,7 @@ const QueryControl = ({
   const [alignRight, setAlignRight] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  /** Closes the popover editor. */
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
 

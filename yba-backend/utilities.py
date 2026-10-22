@@ -1,13 +1,22 @@
-import boto3, json, threading, traceback, time
+"""ETL helpers: S3 NBA dumps, MySQL bulk load, and season data flattening."""
+
+import json
+import threading
+import time
+import traceback
 from datetime import datetime, timedelta
 from random import randint
 
-#configuration variables
+import boto3
+
+# Configuration
 s3_client = boto3.client('s3', 'us-west-1')
 bucket_name = "nba-players.bucket"
 allNames = set()
 
 def test_time(func):
+    """Decorator that logs wall-clock seconds for a function call."""
+
     def wrapper(*args, **kwargs):
         start_time = int(time.time())
         res = func(*args, **kwargs)
@@ -16,6 +25,8 @@ def test_time(func):
     return wrapper
 
 class MySQL_Writer:
+    """Load NDJSON season files from S3 into MySQL games or version2 tables."""
+
     def __init__(self, table, season):
         self.table = table
         self.season = season
@@ -25,11 +36,11 @@ class MySQL_Writer:
         elif self.table == "games":
             self.columns = ["gameID", "stage", "gameDate", "home", "homePts", "away", "awayPts"]
             self.key_template = "gameStages/games%s.json"
-        self.columns_placeholder = ', '.join(self.columns)
-        self.values_placeholder = ', '.join(['%s'] * len(self.columns))
+        self.columns_placeholder = ", ".join(self.columns)
 
     @test_time
     def transferData(self):
+        """Insert or upsert all rows from the season's S3 JSON dump."""
         from dataDump import connection
         cursor = connection.cursor()
 
@@ -63,6 +74,7 @@ class MySQL_Writer:
         
     @test_time
     def removeNonNBAPlayers(self):
+        """Delete version2 rows with empty team (non-NBA league noise)."""
         from dataDump import connection
         cursor = connection.cursor()
         if self.table == "version2":
@@ -71,20 +83,26 @@ class MySQL_Writer:
             connection.commit()
 
     def setTable(self, newTable):
+        """Switch target table (games vs version2) for transferData."""
         self.table = newTable
-    
+
     def setSeason(self, newSeason):
+        """Set the NBA season year used in S3 key templates."""
         self.season = newSeason
+
 
 class DataDumper:
+    """Base class for season-scoped S3 dump workflows."""
+
     def __init__(self, season):
         self.season = season
-    
+
     def setSeason(self, newSeason):
+        """Update the season identifier for subsequent dumps."""
         self.season = newSeason
 
-    #only keep stat lines from games recorded in the games table (FPTS is derived at query time)
     def isRecordedGame(self, gameID):
+        """True if gameID exists in games with a non-empty home team."""
         from dataDump import connection
         cursor = connection.cursor()
 
@@ -93,8 +111,8 @@ class DataDumper:
         return result is not None and result[0] != ""
 
     @test_time
-    #gets data in regular json format to be parsed into ndjson format by flattenDump using 2 threads
     def getAllPlayers(self, szn, data, startTeamID, onlyNames):
+        """Fetch roster stats from RapidAPI by team slice; names-only or full stat map."""
         from dataDump import getData
         nbaTeamIds = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 38, 40, 41]
         for team in range(startTeamID, startTeamID + 15):
@@ -118,6 +136,7 @@ class DataDumper:
             time.sleep(randint(1,5))
 
     def getSeasonStats(self, szn, stats):
+        """Return per-game statistics array for one player id, or None."""
         from dataDump import getData
         try:
             id = stats['id']
@@ -129,8 +148,8 @@ class DataDumper:
             print(f"Could not fetch season stats for this player")
             return None
         
-    #dumps into s3 bucket in ndjson format
     def dumpS3(self, data, s3_path):
+        """Write a list of dicts to S3 as newline-delimited JSON."""
         jsonl_string = '\n'.join(json.dumps(item) for item in data)
         s3_client.put_object(
             Key=s3_path,
@@ -139,11 +158,14 @@ class DataDumper:
         )
     
 class NameDumper(DataDumper):
+    """Merge historical and current-season player names into names.txt on S3."""
+
     def __init__(self, season):
         super().__init__(season)
 
     @test_time
     def dumpData(self):
+        """Refresh allNames.txt from S3 plus two parallel team scans."""
         nameFile = s3_client.get_object(Bucket=bucket_name, Key="names.txt")
         names = nameFile['Body'].read().decode('utf-8')
         for n in names.splitlines():
@@ -162,11 +184,14 @@ class NameDumper(DataDumper):
         s3_client.put_object(Bucket=bucket_name, Key="names.txt", Body="\n".join(allNames), ContentType='text/plain')
 
 class GameDumper(DataDumper):
+    """Build the games table NDJSON for a season."""
+
     def __init__(self, season):
         super().__init__(season)
-    
+
     @test_time
     def dumpData(self):
+        """Fetch league games, normalize dates/scores, upload to S3."""
         allGames = []
         from dataDump import getData
         data = getData(f"/games?season={self.season}")['response']
@@ -194,11 +219,14 @@ class GameDumper(DataDumper):
         super().dumpS3(allGames, f"gameStages/games{self.season}.json")
 
 class PlayerDumper(DataDumper):
+    """Flatten version1 player JSON into version2 per-game stat lines."""
+
     def __init__(self, season):
         super().__init__(season)
-    
+
     @test_time
     def dumpData(self):
+        """Parse version1 dump, filter valid minutes, keep recorded games only."""
         try:
             #reading from s3 to get player data
             obj = s3_client.get_object(Bucket=bucket_name, Key=f"version1/allPlayers{self.season}.json")

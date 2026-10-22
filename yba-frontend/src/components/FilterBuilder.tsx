@@ -14,18 +14,21 @@ interface Props {
   perGame?: boolean;
 }
 
+/** Returns helper copy for composing filters on the given stat. */
 const hintFor = (stat: string) => {
   if (PCT_STATS.includes(stat)) return "Enter percentages as decimals (0.40 = 40%).";
   if (stat == "stage") return "1 = preseason, 2 = regular season, 3–5 = playoffs.";
   return "";
 };
 
+/** UI to list, add, and remove stat comparison filters. */
 const FilterBuilder = ({ filters, stats, onAdd, onRemove, note, perGame }: Props) => {
   const [composing, setComposing] = useState(false);
   const [stat, setStat] = useState(stats[0]);
   const [op, setOp] = useState(">");
   const [num, setNum] = useState("");
 
+  /** Validates and appends the composed filter string. */
   const add = () => {
     if (num.trim() == "" || Number.isNaN(Number(num))) return;
     onAdd(`${stat}${op}${num.trim()}`);

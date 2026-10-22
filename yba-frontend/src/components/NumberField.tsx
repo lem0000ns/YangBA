@@ -9,9 +9,11 @@ interface Props {
   max?: number;
 }
 
-/* -1 means "not set", matching the forms' required-field checks. */
+/** Numeric input with steppers, presets, and -1 as unset for required fields. */
 const NumberField = ({ value, onChange, presets = [], unit, min = 1, max = 500 }: Props) => {
+  /** Clamps a number to the configured min and max. */
   const clamp = (n: number) => Math.max(min, Math.min(max, n));
+  /** Increments or decrements the value by delta within bounds. */
   const step = (delta: number) => onChange(clamp((value == -1 ? 0 : value) + delta));
 
   return (

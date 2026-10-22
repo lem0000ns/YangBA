@@ -15,6 +15,7 @@ const links = [
   { to: "/rank", label: "Rankings" },
 ];
 
+/** Top navigation bar with links, player search, and scroll styling. */
 const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const Navigation = () => {
   const indicator = useSlidingIndicator(linksRef, active);
 
   useEffect(() => {
+    /** Toggles compact nav styling after the user scrolls. */
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -34,6 +36,7 @@ const Navigation = () => {
   }, []);
 
   useEffect(() => {
+    /** Opens player search when "/" is pressed outside text fields. */
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const typing = ["INPUT", "TEXTAREA"].includes(target.tagName);
@@ -49,6 +52,7 @@ const Navigation = () => {
 
   useEffect(() => setSearchOpen(false), [location.pathname]);
 
+  /** Routes to a player profile or home when search completes. */
   const handleSearch = (name: string) => {
     if (name == "") navigate("/");
     else navigate(`/players/${encodeURIComponent(name)}`);

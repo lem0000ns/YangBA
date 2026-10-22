@@ -9,6 +9,7 @@ interface Props {
   flush?: boolean;
 }
 
+/** Bordered section for results with optional header and actions. */
 const ResultCard = ({ title, eyebrow, actions, children, className = "", flush = false }: Props) => (
   <section className={`result-card reveal ${flush ? "is-flush" : ""} ${className}`}>
     {(title || eyebrow || actions) && (

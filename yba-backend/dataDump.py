@@ -1,76 +1,64 @@
-import json, requests, pymysql, os
-from utilities import MySQL_Writer, DataDumper, NameDumper, PlayerDumper, GameDumper
-from playerScraper import namesToSQL
+"""Scheduled Lambda: fetch NBA API data, write S3 dumps, sync MySQL, scrape player profiles."""
 
-#configuration variables
-url = "https://api-nba-v1.p.rapidapi.com"
+import json
+import os
+
+import pymysql
+import requests
+from playerScraper import namesToSQL
+from utilities import GameDumper, MySQL_Writer, NameDumper, PlayerDumper
+
+RAPIDAPI_URL = "https://api-nba-v1.p.rapidapi.com"
 headers = {
-    'x-rapidapi-key': "b990592d51msh5e1029396589d1bp18dd72jsnce5f8c3e8b6c",
-    'x-rapidapi-host': "api-nba-v1.p.rapidapi.com"
+    "x-rapidapi-key": os.getenv("RAPIDAPI_KEY", ""),
+    "x-rapidapi-host": "api-nba-v1.p.rapidapi.com",
 }
 connection = pymysql.connect(
-    host='yba-database.c30igyqguxod.us-west-1.rds.amazonaws.com', 
-    user='admin', 
-    password=os.getenv('SECRETS_MANAGER_CONTRASENA'), 
-    database='yba'
+    host="yba-database.c30igyqguxod.us-west-1.rds.amazonaws.com",
+    user="admin",
+    password=os.getenv("SECRETS_MANAGER_CONTRASENA"),
+    database="yba",
 )
 
-def dumpJson(data, testFile):
-    if not isinstance(testFile, str):
-        print("testFile parameter must be of type string")
-        return False
-    try:
-        with open(testFile, 'w') as f:
-            json.dump(data, f, indent=4)
-        return True
-    except Exception as e:
-        print(f"Could not dump into json file with exception {e}")
-        return False
 
 def getData(endpoint):
+    """GET a RapidAPI NBA endpoint and return parsed JSON, or None on failure."""
     try:
-        response = requests.get(url + endpoint, headers=headers)
-    except Exception as e:
+        response = requests.get(RAPIDAPI_URL + endpoint, headers=headers)
+    except Exception:
         print(f"Could not fetch data with endpoint {endpoint}")
         return None
-    
-    if (response.status_code == 200):
+
+    if response.status_code == 200:
         return response.json()
-    print(f"Could not fetch data with endpoint {endpoint} with status code {response.status_code}")
+    print(
+        f"Could not fetch data with endpoint {endpoint} "
+        f"with status code {response.status_code}"
+    )
     return None
 
-def lambda_handler(event, context):
-    try:
-        #gets most recent season
-        season = getData("/seasons")['response'][-1]
 
-        dd = NameDumper(season)
-        dd.dumpData()
-        gd = GameDumper(season)
-        gd.dumpData()
-        pd = PlayerDumper(season)
-        pd.dumpData()
-        
-        #transfer data to MySQL, updating games and player data in version2 under most recent season
-        sqlWriter = MySQL_Writer("games", season)
-        sqlWriter.transferData()
-        sqlWriter.setTable("version2")
-        sqlWriter.transferData()
-        sqlWriter.removeNonNBAPlayers()
-        
-        #writes player profile information to MySQL
+def lambda_handler(event, context):
+    """Run the full daily pipeline for the latest NBA season."""
+    try:
+        season = getData("/seasons")["response"][-1]
+
+        NameDumper(season).dumpData()
+        GameDumper(season).dumpData()
+        PlayerDumper(season).dumpData()
+
+        sql_writer = MySQL_Writer("games", season)
+        sql_writer.transferData()
+        sql_writer.setTable("version2")
+        sql_writer.transferData()
+        sql_writer.removeNonNBAPlayers()
+
         namesToSQL()
-        
+
         if connection:
             connection.close()
-        
-        return {
-            'statusCode': 200,
-            'body': 'Data uploaded successfully'
-        }
-        
+
+        return {"statusCode": 200, "body": "Data uploaded successfully"}
+
     except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': f'Error uploading file: {e}'
-        }
+        return {"statusCode": 500, "body": f"Error uploading file: {e}"}

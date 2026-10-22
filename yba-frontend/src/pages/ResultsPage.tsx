@@ -80,6 +80,7 @@ const fields = [
   "FPTS",
 ];
 
+/** Parses MM-DD-YYYY strings into a short US locale date. */
 const formatDate = (date: string) => {
   const [month, day, year] = date.split("-").map(Number);
   if (!year) return date;
@@ -90,11 +91,14 @@ const formatDate = (date: string) => {
   });
 };
 
+/** Capitalizes the first character of a string. */
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
+/** Returns the arithmetic mean of numeric values, or zero when empty. */
 const average = (values: number[]) =>
   values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 
+/** Builds table column definitions for the game log results view. */
 const gameColumns = (maxFpts: number): Column<GameRow>[] => fields.map((field) => {
   switch (field) {
     case "name":
@@ -143,6 +147,7 @@ const gameColumns = (maxFpts: number): Column<GameRow>[] => fields.map((field) =
   }
 });
 
+/** Loads and renders stats, games, or rank results from URL parameters. */
 const ResultsPage = ({ path }: Props) => {
   const [result, setResult] = useState<any>();
   const [statInfo, setStatInfo] = useState("");
@@ -267,6 +272,7 @@ const ResultsPage = ({ path }: Props) => {
     </div>
   );
 
+  /** Renders back link, title, and filter chips for results pages. */
   const header = (actions?: ReactNode) => (
     <>
       <Link to={formPath} className="back-link">
@@ -427,6 +433,7 @@ const ResultsPage = ({ path }: Props) => {
     const isTop = order == "Most";
     const maxValue = Math.max(...rows.map((r) => Math.abs(r.value) || 0)) || 1;
     const podium = [...rows].sort((a, b) => a.rank - b.rank).slice(0, 3);
+    /** Formats rank row values for the current stat and aggregation. */
     const format = (v: number) => formatStat(v, stat, agg);
 
     return (

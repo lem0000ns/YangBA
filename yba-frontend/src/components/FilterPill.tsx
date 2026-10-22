@@ -7,6 +7,7 @@ interface Props {
   onRemove?: () => void;
 }
 
+/** Displays a human-readable filter chip with optional remove control. */
 const FilterPill = ({ filter, perGame, onRemove }: Props) => {
   const label = describeFilter(filter, perGame);
   return (

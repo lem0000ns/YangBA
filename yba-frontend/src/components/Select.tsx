@@ -10,9 +10,11 @@ interface Props {
   ariaLabel?: string;
 }
 
+/** Custom dropdown select built from a button and option list. */
 const Select = ({ options, value, onChange, placeholder = "Select", ariaLabel }: Props) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  /** Closes the dropdown menu. */
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
   const current = options.find((o) => o.value == value);

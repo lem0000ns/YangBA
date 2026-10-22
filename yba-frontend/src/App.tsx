@@ -11,12 +11,14 @@ import {
 import { PlayerInfo } from "./content/All";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
+/** Root app shell with routes and query submit handlers. */
 function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   useEffect(() => window.scrollTo(0, 0), [pathname]);
 
+  /** Navigates to the stats results URL from form values. */
   const handleStatsSubmit = (
     name: string,
     stat: string,
@@ -32,6 +34,7 @@ function App() {
     );
   };
 
+  /** Navigates to the games results URL from form values. */
   const handleGamesSubmit = (
     name: string,
     seasons: string[],
@@ -46,6 +49,7 @@ function App() {
     );
   };
 
+  /** Navigates to the rank results URL from form values. */
   const handleRankSubmit = (
     agg: string,
     stat: string,

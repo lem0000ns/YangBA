@@ -7,6 +7,7 @@ interface Props {
   size?: "sm" | "md" | "lg" | "xl";
 }
 
+/** Player headshot with a sheep fallback when the image fails. */
 const PlayerAvatar = ({ name, size = "md" }: Props) => {
   const [failed, setFailed] = useState(false);
 

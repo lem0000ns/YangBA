@@ -20,6 +20,7 @@ interface Props {
   ) => void;
 }
 
+/** Form for searching game logs with filters and a result limit. */
 const GamesForm = ({ onSubmit }: Props) => {
   const [nameValue, setNameValue] = useState("");
   const [seasons, setSeasons] = useState<string[]>([]);
@@ -28,12 +29,14 @@ const GamesForm = ({ onSubmit }: Props) => {
   const [error, setError] = useState("");
   const [formKey, setFormKey] = useState(0);
 
+  /** Validates the game limit and submits the games query. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (limit == -1) setError("'Number of games' is a required field");
     else onSubmit(nameValue, seasons, filters, limit);
   };
 
+  /** Clears all games form fields and validation errors. */
   const reset = () => {
     setNameValue("");
     setSeasons([]);

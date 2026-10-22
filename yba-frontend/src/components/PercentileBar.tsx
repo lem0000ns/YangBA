@@ -2,7 +2,7 @@ interface Props {
   value: number;
 }
 
-/* value is a fraction between 0 and 1. */
+/** Visual bar for a percentile value between 0 and 1. */
 const PercentileBar = ({ value }: Props) => {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (

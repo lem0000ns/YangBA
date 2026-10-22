@@ -1,13 +1,16 @@
+/** One profile fact row (optional secondary line). */
 export interface FactLine {
   primary: string;
   secondary?: string;
 }
 
+/** Parsed award line from Wikipedia infobox text. */
 export interface Award {
   name: string;
   years?: string;
 }
 
+/** Normalize whitespace and strip citation markers from scraped text. */
 const tidy = (value: string) =>
   value
     .replace(/\u00a0/g, " ")
@@ -15,21 +18,25 @@ const tidy = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** Fix common unicode escape artifacts in stored profile strings. */
 const cleanUnicode = (value: string) =>
   tidy(value).replace(/u2013/g, "\u2013").replace(/u2192/g, "\u2192");
 
+/** Return trimmed text or empty when missing / "none". */
 const blank = (value: string | null | undefined) => {
   if (!value) return "";
   const text = tidy(value);
   return !text || text.toLowerCase() == "none" ? "" : text;
 };
 
+/** Split "Primary (secondary)" into a FactLine. */
 const splitParen = (line: string): FactLine => {
   const match = line.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
   if (!match) return { primary: line };
   return { primary: match[1].trim(), secondary: match[2].trim() };
 };
 
+/** Parse born/age line from player profile into fact rows. */
 export const parseBorn = (value: string | null | undefined): FactLine[] => {
   const text = blank(value);
   if (!text) return [];
@@ -39,11 +46,13 @@ export const parseBorn = (value: string | null | undefined): FactLine[] => {
   return [{ primary: match[1].trim(), secondary: place || undefined }];
 };
 
+/** Parse height/weight strings with optional metric in parentheses. */
 export const parseMeasure = (value: string | null | undefined): FactLine[] => {
   const text = blank(value);
   return text ? [splitParen(text)] : [];
 };
 
+/** Parse NBA draft or undrafted line into fact rows. */
 export const parseDraft = (value: string | null | undefined): FactLine[] => {
   const text = blank(value);
   if (!text) return [];
@@ -54,11 +63,13 @@ export const parseDraft = (value: string | null | undefined): FactLine[] => {
   return [{ primary: text }];
 };
 
+/** Wrap a single non-empty profile field as one fact row. */
 export const parsePlain = (value: string | null | undefined): FactLine[] => {
   const text = blank(value);
   return text ? [{ primary: text }] : [];
 };
 
+/** Parse multiline school/location fields into fact rows. */
 export const parsePlace = (value: string | null | undefined): FactLine[] => {
   if (!value) return [];
   return value
@@ -68,6 +79,7 @@ export const parsePlace = (value: string | null | undefined): FactLine[] => {
     .map(splitParen);
 };
 
+/** Parse awards block text into structured award entries. */
 export const parseAwards = (value: string | null | undefined): Award[] => {
   if (!value) return [];
   return value
@@ -83,6 +95,7 @@ export const parseAwards = (value: string | null | undefined): Award[] => {
     .filter((award) => award.name);
 };
 
+/** Render career teams JSON from the database as a timeline list. */
 export const filterTeams = (teams: string) => {
   let parsed: Record<string, string>[];
   try {

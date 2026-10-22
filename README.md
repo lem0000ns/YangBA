@@ -1,37 +1,33 @@
 # YangBA
 
-Welcome to the YangBA! This site provide data-driven insights into different facets of the NBA, including a player ranking system and individual player statistics given a set of criteria. Unique player profiles are also featured, containing information such as each player's career awards, teams played on, body measurements, and more.
+NBA stats explorer: query **Stats** (one number for a player), **Games** (matching box scores), or **Rank** (leaderboards). Player profiles include bio, teams, and awards. Live site: [yangba.net](https://www.yangba.net).
 
-There are currently three different types of functionalities that the YangBA supports: Stats, Games, and Rank.
+**FPTS** (fantasy points) uses [ESPN’s default points-league scoring](https://fantasy.espn.com/basketball/settings) and is computed from the box score at query time—usable like any other stat in all three tools.
 
-1. The "Stats" component retrives a single stat from an individual player, such as "Most 3PM Stephen Curry made in 2017" or "What is the fewest amount of assists Lebron James had in a game where he scored more than 40 points?"
-2. The "Games" component returns a series of statlines that fit within a certain criteria, given by the user. For example, it can show all statlines of players in which they've scored more than 50 points, or all games from a specific player in which they had more than 10 threes.
-3. The "Rank" component ranks a series of players based on a certain criteria, given by the user. For example, if the user wanted to know the top 10 players based on free-throw efficiency or the worst 10 players in terms of points per game, they would choose this component.
+## Local development
 
-Every statline also has a fantasy point total, "FPTS", using ESPN's default points-league scoring: 2 × FGM − FGA + 3PM + 2 × AST + REB + 4 × (STL + BLK) − 2 × TOV + PTS − missed free throws. FPTS is computed from the box score at query time, so it can be used like any other stat in Stats, Games, and Rank queries.
+Frontend only (data comes from the deployed API):
 
-## Backend + Frontend Development
+```bash
+cd yba-frontend
+npm install
+npm run dev
+```
 
-All player/game data are retrieved from the NBA API. Python scripts were written to automate this process every 24 hours, ensuring its access and scope to the most recent information available. Player information from Wikipedia, which is later used to implement the player profile component in the frontend, is also webscraped on an automated process. API routes are handled by AWS API Gateway, which reads a series of query string parameters and returns a corresponding result.
+Open [http://localhost:3000](http://localhost:3000).
 
-React.js and HTML/CSS were primarily used in frontend development. When a user first opens the website, there is a home page that introduces each of 3 separate "paths" or tools that the user can choose to query a specific type of stat. Specifically, the "Stats," "Games," and "Rank" component query a specific stat from an individual player, list out different statlines that satisfy given criteria, and rank players based on given criteria, respectively.
+## Deploy
 
-## Tech Stack
+From the repo root (requires AWS CLI and configured credentials):
 
-Bootstrap, MySQL, Beautiful Soup, AWS (Lambda, S3, API Gateway, Cloudfront, RDS, EC2, Route 53), Namecheap
+```bash
+yba-deploy "your commit message"
+```
 
-## Images
+This commits if needed, pushes, updates the `routeHandler` Lambda (`yba-backend/routeHandler.py`, `query_utilities.py`), builds the frontend, syncs to S3, and invalidates CloudFront.
 
-### Home page
+## Stack
 
-![Home page](./yba-frontend/src/content/images/home_page.png)
+React + Vite · API Gateway + Lambda · MySQL (RDS) · S3 · CloudFront · Daily ETL Lambda (`dataDump.py`) via RapidAPI NBA + Wikipedia scraping for profiles.
 
-### Tyler Herro's average points per game in 2020 (includes all games)
-
-![Tyler Herro](./yba-frontend/src/content/images/herro_pts.png)
-
-### Player profile for Dwight Powell
-
-![Dwight Powell](./yba-frontend/src/content/images/powell_pfp.png)
-
-### Access the website at https://www.yangba.net
+**Backend env:** `SECRETS_MANAGER_CONTRASENA` (MySQL), `RAPIDAPI_KEY` (ETL only).

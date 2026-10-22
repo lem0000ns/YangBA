@@ -15,6 +15,7 @@ interface Props {
   delay?: number;
 }
 
+/** Metric display card with optional animation, trend, and chart slot. */
 const StatCard = ({
   label,
   value,

@@ -4,6 +4,7 @@ interface Props {
   label?: string;
 }
 
+/** Animated loading indicator with an optional status label. */
 const Loader = ({ label = "Counting sheep" }: Props) => (
   <div className="loader" role="status" aria-live="polite">
     <div className="loader-flock" aria-hidden="true">

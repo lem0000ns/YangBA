@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { GoatMark } from "./Sheep";
 
+/** Site footer with branding, credits, and nav links. */
 const Footer = () => (
   <footer className="footer">
     <div className="footer-inner">

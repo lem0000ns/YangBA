@@ -5,6 +5,7 @@ interface Props {
   compact?: boolean;
 }
 
+/** Home link with the YangBA logo mark and wordmark. */
 const Logo = ({ compact = false }: Props) => (
   <Link to="/" className="logo" aria-label="YangBA home">
     <span className="logo-mark">

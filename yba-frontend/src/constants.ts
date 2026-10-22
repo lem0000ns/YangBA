@@ -1,3 +1,4 @@
+/** Display metadata for a queryable stat column. */
 export interface StatMeta {
   label: string;
   short: string;
@@ -72,7 +73,7 @@ export const SEASONS = [
   "2024",
 ];
 
-// Season values are the year a season ends; the API is queried with value - 1.
+/** Season values are the year a season ends; the API is queried with value - 1. */
 export const seasonLabel = (season: string) => {
   const end = Number(season);
   if (!end) return season;
@@ -122,12 +123,16 @@ export const TEAMS: Record<string, string> = {
   WAS: "Washington Wizards",
 };
 
+/** Long label for a stat key, or the key itself. */
 export const statLabel = (stat: string) => STAT_META[stat]?.label ?? stat;
+/** Abbreviation for tables and chips. */
 export const statShort = (stat: string) =>
   STAT_META[stat]?.short ?? stat.toUpperCase();
+/** Human label for an aggregation mode (sum, avg, …). */
 export const aggLabel = (agg: string) =>
   AGG_OPTIONS.find((a) => a.value == agg)?.label ?? agg;
 
+/** Natural-language phrase for a stat + aggregation pair. */
 export const describeStat = (stat: string, agg: string) => {
   const label = statLabel(stat);
   if (stat == "games") return "Games played";
@@ -144,6 +149,7 @@ export const describeStat = (stat: string, agg: string) => {
   return label;
 };
 
+/** Format a numeric API value for display (percentages, integers, decimals). */
 export const formatStat = (value: number, stat: string, agg = "") => {
   if (value == null || Number.isNaN(value)) return "—";
   if (PCT_STATS.includes(stat)) return `${(value * 100).toFixed(1)}%`;
@@ -151,7 +157,7 @@ export const formatStat = (value: number, stat: string, agg = "") => {
   return agg == "sum" ? value.toFixed(0) : value.toFixed(1);
 };
 
-// ESPN's default points-league scoring.
+/** ESPN default points-league FPTS from a game row (fallback if API omits FPTS). */
 export const computeFPTS = (s: Record<string, string | number>) => {
   const n = (key: string) => Number(s[key]) || 0;
   return (
@@ -160,6 +166,7 @@ export const computeFPTS = (s: Record<string, string | number>) => {
   );
 };
 
+/** CloudFront URL for a player's headshot JPG. */
 export const playerImageURL = (name: string) =>
   `https://d2qd9wn47agcqj.cloudfront.net/allPlayerImages/${name
     .replace(/[\s']/g, "")
@@ -167,13 +174,14 @@ export const playerImageURL = (name: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()}.jpg`;
 
+/** Split an API filter token like `points>30` into stat, operator, and value. */
 export const parseFilter = (filter: string) => {
   const match = filter.match(/^([^<>=]+)([<>=])(.*)$/);
   if (!match) return { stat: filter, op: "", num: "" };
   return { stat: match[1], op: match[2], num: match[3] };
 };
 
-// "points>30" -> "More than 30 points"; perGame applies to rank filters, which compare averages.
+/** Turn a filter token into readable text; perGame applies to rank average filters. */
 export const describeFilter = (filter: string, perGame = false) => {
   const { stat, op, num } = parseFilter(filter);
   if (!op) return filter;

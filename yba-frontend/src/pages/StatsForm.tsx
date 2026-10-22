@@ -21,6 +21,7 @@ interface Props {
   ) => void;
 }
 
+/** Form for building and submitting a single-stat query. */
 const StatsForm = ({ onSubmit }: Props) => {
   const [nameValue, setNameValue] = useState("");
   const [statValue, setStatValue] = useState("");
@@ -31,6 +32,7 @@ const StatsForm = ({ onSubmit }: Props) => {
   const [formKey, setFormKey] = useState(0);
   const fpts = useFptsInfo();
 
+  /** Updates stat selection and adjusts metric constraints for that stat. */
   const handleStatClick = (name: string) => {
     setStatValue(name);
     setError("");
@@ -38,6 +40,7 @@ const StatsForm = ({ onSubmit }: Props) => {
     else if (PCT_STATS.includes(name) && aggValue == "sum") setAggValue("avg");
   };
 
+  /** Sets the aggregation metric when allowed for the current stat. */
   const handleAggClick = (agg: string) => {
     if (statValue != "games") {
       setAggValue(agg);
@@ -45,6 +48,7 @@ const StatsForm = ({ onSubmit }: Props) => {
     }
   };
 
+  /** Validates required fields and calls onSubmit with form state. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     statValue == "" || aggValue == ""
@@ -52,6 +56,7 @@ const StatsForm = ({ onSubmit }: Props) => {
       : onSubmit(nameValue, statValue, aggValue, seasons, filters);
   };
 
+  /** Clears all stats form fields and validation errors. */
   const reset = () => {
     setNameValue("");
     setStatValue("");

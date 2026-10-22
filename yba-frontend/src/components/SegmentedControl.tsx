@@ -16,6 +16,7 @@ interface Props {
   ariaLabel?: string;
 }
 
+/** Radio-style segmented control with a sliding active indicator. */
 const SegmentedControl = ({ options, value, onChange, size = "md", ariaLabel }: Props) => {
   const ref = useRef<HTMLDivElement>(null);
   const indicator = useSlidingIndicator(ref, value);

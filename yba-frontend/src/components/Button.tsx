@@ -15,6 +15,7 @@ interface Props {
   onClick?: () => void;
 }
 
+/** Styled button or router link with optional icon and arrow. */
 const Button = ({
   children,
   variant = "primary",

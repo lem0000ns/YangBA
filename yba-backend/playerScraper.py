@@ -1,4 +1,13 @@
-import requests, wikipedia, json, boto3, pymysql, os, time
+"""Scrape Wikipedia infoboxes for NBA players and insert rows into MySQL players."""
+
+import json
+import os
+import time
+
+import boto3
+import pymysql
+import requests
+import wikipedia
 from bs4 import BeautifulSoup
 
 s3_client = boto3.client('s3', 'us-west-1')
@@ -15,6 +24,8 @@ cursor = connection.cursor()
 allNames = []
 
 def test_time(func):
+    """Decorator that logs wall-clock seconds for a function call."""
+
     def wrapper(*args, **kwargs):
         start_time = int(time.time())
         res = func(*args, **kwargs)
@@ -23,6 +34,7 @@ def test_time(func):
     return wrapper
 
 def wikibot(orig, name, url):
+    """Parse a player's Wikipedia page and INSERT one row into players."""
     url_open = requests.get(url)
     soup = BeautifulSoup(url_open.content, 'html.parser')
     table = soup('table', {'class': 'infobox vcard'})
@@ -103,6 +115,7 @@ def wikibot(orig, name, url):
 
 @test_time
 def namesToSQL():
+    """For each name in S3 allNames.txt, scrape Wikipedia when missing from players."""
     nameFile = s3_client.get_object(Bucket=bucket_name, Key="allNames.txt")
     names = nameFile['Body'].read().decode('utf-8')
 

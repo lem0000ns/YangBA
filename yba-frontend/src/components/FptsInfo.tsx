@@ -18,6 +18,7 @@ export const FPTS_SCORING = [
   { stat: "Turnover", value: "−2" },
 ];
 
+/** Short attribution line for ESPN fantasy scoring. */
 export const EspnCredit = () => (
   <p className="fpts-credit">
     Scoring based on{" "}
@@ -28,6 +29,7 @@ export const EspnCredit = () => (
   </p>
 );
 
+/** Modal explaining fantasy points (FPTS) scoring rules. */
 const FptsInfo = ({ open, onClose }: Props) => (
   <Modal open={open} onClose={onClose} eyebrow="Fantasy points" title="What is FPTS?">
     <p>FPTS adds up a player's box score into one number.</p>

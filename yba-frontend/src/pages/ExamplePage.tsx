@@ -22,10 +22,13 @@ interface Example {
 
 const pathLabels: Record<Path, string> = { stats: "Stats", games: "Games", rank: "Rankings" };
 
+/** Prevents line breaks between en-dash and trailing digits in season text. */
 const keepSeasonsTogether = (text: string) => text.replace(/–(\d)/g, "–\u2060$1");
 
+/** Joins route segment values or returns "na" when empty. */
 const join = (values: string[] | undefined, sep = "-") => (values?.length ? values.join(sep) : "na");
 
+/** Builds the results path for a sample example query. */
 const resultsURL = (e: Example) => {
   const seasons = join(e.seasons);
   const filters = join(e.filters);
@@ -34,6 +37,7 @@ const resultsURL = (e: Example) => {
   return `/rank/results/na/${seasons}/${filters}/${e.limit}/${e.stat}/${e.agg}/${e.order}/${e.team ?? "na"}/${e.stage ?? "na"}`;
 };
 
+/** Derives label/value rows describing an example's parameters. */
 const setupRows = (e: Example) => {
   const rows: { label: string; value: string }[] = [];
   if (e.path == "rank") rows.push({ label: "Order", value: e.order == "Most" ? "Top" : "Bottom" });
@@ -69,6 +73,7 @@ interface CardProps {
   onOpen: (example: Example) => void;
 }
 
+/** Clickable card that opens an example query in the setup drawer. */
 const ExampleCard = ({ example, index, onOpen }: CardProps) => (
   <button
     type="button"
@@ -91,6 +96,7 @@ const ExampleCard = ({ example, index, onOpen }: CardProps) => (
   </button>
 );
 
+/** Gallery of sample queries with a drawer to inspect and run them. */
 const ExamplePage = () => {
   const [open, setOpen] = useState<Example | null>(null);
 

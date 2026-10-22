@@ -9,6 +9,7 @@ interface Props {
   children?: ReactNode;
 }
 
+/** Profile summary card linking to the full player page. */
 const PlayerCard = ({ name, meta, children }: Props) => (
   <div className="player-card reveal">
     <div className="player-card-portrait">

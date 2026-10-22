@@ -9,6 +9,7 @@ interface Props {
   align?: "left" | "center";
 }
 
+/** Page or section title block with optional description and actions. */
 const SectionHeader = ({
   eyebrow,
   title,

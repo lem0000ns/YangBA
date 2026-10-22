@@ -10,9 +10,11 @@ interface Props {
   variant?: "dialog" | "drawer";
 }
 
+/** Overlay dialog or drawer with escape-to-close and body scroll lock. */
 const Modal = ({ open, onClose, title, eyebrow, children, variant = "dialog" }: Props) => {
   useEffect(() => {
     if (!open) return;
+    /** Closes the modal when Escape is pressed. */
     const onKey = (e: KeyboardEvent) => e.key == "Escape" && onClose();
     document.addEventListener("keydown", onKey);
     document.body.classList.add("has-overlay");

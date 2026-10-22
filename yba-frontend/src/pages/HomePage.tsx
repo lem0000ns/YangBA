@@ -48,6 +48,7 @@ const paths = [
 const specimenURL = "/stats/results/Stephen Curry/2017/na/na/points/avg/na/na/na";
 const fptsLeadersURL = "/rank/results/na/na/games>50/10/fpts/avg/Most/na/na";
 
+/** Marketing landing page with tool paths and FPTS overview. */
 const HomePage = () => {
   return (
     <div className="page page-home">
