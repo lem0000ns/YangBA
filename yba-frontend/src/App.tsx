@@ -1,4 +1,5 @@
-import { Navbar } from "./components/All.tsx";
+import { useEffect } from "react";
+import { Footer, Navigation, SheepPattern } from "./components/All.tsx";
 import {
   StatsForm,
   GamesForm,
@@ -7,12 +8,14 @@ import {
   ExamplePage,
   ResultsPage,
 } from "./pages/All.tsx";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import { PlayerInfo } from "./content/All";
-import { Route, Routes, useNavigate } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 function App() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  useEffect(() => window.scrollTo(0, 0), [pathname]);
 
   const handleStatsSubmit = (
     name: string,
@@ -64,10 +67,11 @@ function App() {
 
   return (
     <>
-      <div className="body">
-        <Navbar />
-        <div className="content-container">
-          <Routes>
+      <SheepPattern />
+      <div className="app">
+        <Navigation />
+        <main className="content-container">
+          <Routes key={pathname}>
             <Route path="/" element={<HomePage />} />
             <Route path="/examples" element={<ExamplePage />} />
 
@@ -97,7 +101,8 @@ function App() {
             />
             <Route path="/players/:name" element={<PlayerInfo />} />
           </Routes>
-        </div>
+        </main>
+        <Footer />
       </div>
     </>
   );

@@ -1,0 +1,83 @@
+/* Data surfaces: query builders and results sit a step above the wool background. */
+
+.query-card,
+.stat-card,
+.player-card,
+.result-card,
+.podium-card,
+.empty-state,
+.profile-facts,
+.profile-hero,
+.query-popover,
+.filter-composer {
+  border-color: var(--edge);
+  background: var(--surface);
+}
+
+.query-card,
+.stat-card,
+.player-card,
+.result-card,
+.podium-card,
+.empty-state,
+.profile-facts,
+.profile-hero {
+  box-shadow: var(--shadow-data);
+}
+
+.podium-card.rank-1 {
+  border-color: var(--edge-strong);
+}
+
+.query-control-trigger {
+  border-color: var(--edge);
+  background: var(--field);
+}
+
+.is-popover .query-control-trigger:hover {
+  border-color: var(--edge-strong);
+  background: var(--surface);
+}
+
+.query-control.is-open .query-control-trigger,
+.is-inline .query-control-trigger:focus-within {
+  background: var(--surface);
+}
+
+.segmented {
+  border-color: var(--edge);
+  background: var(--cream-2);
+}
+
+.segmented-thumb {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm), 0 0 0 1px var(--edge);
+}
+
+.data-table th {
+  border-bottom-color: var(--edge);
+  background: var(--cream-2);
+}
+
+.data-table td {
+  border-bottom-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.data-table tbody tr:hover td,
+.rank-row:hover {
+  background: var(--cream);
+}
+
+.rank-row {
+  border-bottom-color: var(--line-strong);
+}
+
+.chip.is-static {
+  border-color: var(--edge);
+  background: var(--surface);
+}
+
+.filter-pill {
+  border-color: var(--lavender);
+}

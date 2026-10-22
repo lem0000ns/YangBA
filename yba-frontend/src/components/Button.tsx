@@ -1,32 +1,52 @@
+import { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "./Icons";
+
 interface Props {
-  name: string;
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "ghost";
+  size?: "sm" | "md" | "lg";
   type?: "button" | "submit" | "reset";
-  color?:
-    | "primary"
-    | "danger"
-    | "success"
-    | "secondary"
-    | "warning"
-    | "info"
-    | "light"
-    | "dark"
-    | "link";
-  onClick: (name: any) => void;
+  to?: string;
+  arrow?: boolean;
+  icon?: ReactNode;
+  disabled?: boolean;
+  className?: string;
+  onClick?: () => void;
 }
 
 const Button = ({
-  name,
+  children,
+  variant = "primary",
+  size = "md",
   type = "button",
-  color = "primary",
+  to,
+  arrow = false,
+  icon,
+  disabled,
+  className = "",
   onClick,
 }: Props) => {
+  const classes = `btn btn-${variant} btn-${size} ${className}`;
+  const content = (
+    <>
+      {icon && <span className="btn-icon">{icon}</span>}
+      <span>{children}</span>
+      {arrow && <ArrowRight size={size == "lg" ? 18 : 15} className="btn-arrow" />}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className={classes} onClick={onClick}>
+        {content}
+      </Link>
+    );
+  }
+
   return (
-    <button
-      type={type}
-      className={"btn btn-" + color}
-      onClick={() => onClick(name)}
-    >
-      {name}
+    <button type={type} className={classes} onClick={onClick} disabled={disabled}>
+      {content}
     </button>
   );
 };

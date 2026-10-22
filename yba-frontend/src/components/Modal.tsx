@@ -1,101 +1,47 @@
+import { ReactNode, useEffect } from "react";
+import { CloseIcon } from "./Icons";
+
 interface Props {
-  color?:
-    | "primary"
-    | "danger"
-    | "success"
-    | "secondary"
-    | "warning"
-    | "info"
-    | "light"
-    | "dark"
-    | "link";
-  title: string;
-  enterMessage: string;
-  textBox: JSX.Element;
-  helperText: string[];
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  eyebrow?: ReactNode;
+  children: ReactNode;
+  variant?: "dialog" | "drawer";
 }
 
-const Modal = ({
-  color = "light",
-  title,
-  enterMessage,
-  textBox,
-  helperText,
-}: Props) => {
+const Modal = ({ open, onClose, title, eyebrow, children, variant = "dialog" }: Props) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key == "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    document.body.classList.add("has-overlay");
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.classList.remove("has-overlay");
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <div>
-      <button
-        type="button"
-        className={`btn btn-${color}`}
-        data-bs-toggle="modal"
-        data-bs-target="#filterModal"
-      >
-        {title}
-      </button>
-
+    <div className={`overlay overlay-${variant}`} onMouseDown={onClose}>
       <div
-        className="modal fade"
-        id="filterModal"
-        tabIndex={-1}
-        aria-labelledby="exampleModalLabel"
-        aria-hidden="true"
+        className={`modal modal-${variant}`}
+        role="dialog"
+        aria-modal="true"
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h1
-                style={{ color: "black" }}
-                className="modal-title fs-5"
-                id="exampleModalLabel"
-              >
-                {enterMessage}
-              </h1>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-
-            {textBox}
-
-            <div className="modal-footer">
-              <div
-                className="form-text text-muted"
-                style={{ textAlign: "left" }}
-              >
-                <p style={{ color: "purple", marginLeft: "20px" }}>
-                  FORMAT: {"{"}stat{"}"}
-                  {"{"}op{"}"}
-                  {"{"}num{"}"} e.g. points{">"}30
-                </p>
-                <ul>
-                  {helperText.map((value: string) => {
-                    return <li>{value}</li>;
-                  })}
-                </ul>
-                <p style={{ color: "purple", marginLeft: "20px" }}>
-                  click ',' to add filter
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                data-bs-dismiss="modal"
-              >
-                Enter
-              </button>
-            </div>
+        <div className="modal-header">
+          <div>
+            {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+            <h2 className="modal-title">{title}</h2>
           </div>
+          <button type="button" className="nav-icon-button" onClick={onClose} aria-label="Close">
+            <CloseIcon size={16} />
+          </button>
         </div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   );

@@ -1,0 +1,52 @@
+:root {
+  /* Wool palette */
+  --wool: #fbf8f2;
+  --cream: #f5f0e6;
+  --cream-2: #eee7da;
+  --beige: #ddd3c2;
+  --stone: #a39a8c;
+  --gray: #6e685f;
+  --charcoal: #2a2622;
+  --ink: #1a1714;
+  --bark: #2f2721;
+  --card: #fffdf9;
+  --wool-ink: #dcd2c1;
+
+  /* Accent — used sparingly */
+  --lavender: #8c80b4;
+  --lavender-ink: #5d5189;
+  --lavender-soft: #eeeaf5;
+  --lavender-line: #dad4ea;
+
+  --up: #4c7a5b;
+  --up-soft: #e6eee6;
+  --down: #a35d4b;
+  --down-soft: #f6e8e3;
+
+  --line: rgba(42, 38, 34, 0.09);
+  --line-strong: rgba(42, 38, 34, 0.17);
+
+  /* Data surfaces */
+  --surface: #ffffff;
+  --field: #f2ece1;
+  --edge: rgba(42, 38, 34, 0.16);
+  --edge-strong: rgba(42, 38, 34, 0.26);
+  --shadow-data: 0 1px 2px rgba(47, 39, 33, 0.07), 0 10px 26px -12px rgba(47, 39, 33, 0.3);
+
+  --pattern-wool: #efe8db;
+  --pattern-face: #e3d9c8;
+
+  --shadow-sm: 0 1px 2px rgba(47, 39, 33, 0.05), 0 1px 1px rgba(47, 39, 33, 0.03);
+  --shadow-md: 0 2px 4px rgba(47, 39, 33, 0.04), 0 12px 28px -14px rgba(47, 39, 33, 0.2);
+  --shadow-lg: 0 2px 6px rgba(47, 39, 33, 0.04), 0 28px 60px -30px rgba(47, 39, 33, 0.34);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --max: 1160px;
+}

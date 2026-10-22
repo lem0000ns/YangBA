@@ -1,69 +1,163 @@
-import { useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
+import { useClickOutside } from "../hooks";
+import { CloseIcon, SearchIcon } from "./Icons";
 
 interface Props {
   possibleValues: string[];
-  helperText?: string;
-  text: string;
   onChange: (value: string) => void;
-  className?: string;
+  onSubmitEmpty?: () => void;
+  placeholder?: string;
+  variant?: "field" | "search";
+  autoFocus?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
+
+const MAX_SUGGESTIONS = 8;
+
+const highlight = (text: string, query: string) => {
+  const index = text.toLowerCase().indexOf(query.toLowerCase());
+  if (index == -1 || !query) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark>{text.slice(index, index + query.length)}</mark>
+      {text.slice(index + query.length)}
+    </>
+  );
+};
 
 const Autocomplete = ({
   possibleValues,
-  helperText,
-  text,
   onChange,
-  className = "input",
+  onSubmitEmpty,
+  placeholder = "Search for a player…",
+  variant = "field",
+  autoFocus,
+  inputRef,
 }: Props) => {
   const [inputValue, setInputValue] = useState("");
-  const [suggestions, setSuggestions] = useState([""]);
+  const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef("");
+  const listId = useId();
 
-  const handleInputChange = (e: any) => {
-    const value = e.target.value;
+  const suggestions = useMemo(() => {
+    const query = inputValue.trim().toLowerCase();
+    if (!query) return [];
+    return possibleValues
+      .filter((name) => name && name.toLowerCase().includes(query))
+      .slice(0, MAX_SUGGESTIONS);
+  }, [inputValue, possibleValues]);
+
+  useClickOutside(wrapperRef, open, () => setOpen(false));
+
+  const select = (value: string) => {
+    setInputValue(variant == "search" ? "" : value);
+    setOpen(false);
+    selectedRef.current = variant == "search" ? "" : value;
+    onChange(value);
+  };
+
+  const handleTyping = (value: string) => {
     setInputValue(value);
-    if (value.length > 0) {
-      const filteredSuggestions = possibleValues.filter((suggestion) =>
-        suggestion.toLowerCase().includes(value.toLowerCase())
-      );
-      filteredSuggestions.length > 0
-        ? setSuggestions(filteredSuggestions)
-        : setSuggestions(["No matches found"]);
-    } else {
-      setSuggestions([]);
+    setHighlighted(0);
+    setOpen(true);
+    if (variant == "field" && selectedRef.current && value != selectedRef.current) {
+      selectedRef.current = "";
+      onChange("");
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setInputValue(suggestion);
-    onChange(suggestion);
-    setSuggestions([]);
-    if (className == "search-bar") {
-      setInputValue(suggestion);
+  const handleBlur = () => {
+    if (variant != "field" || selectedRef.current) return;
+    const typed = inputValue.trim().toLowerCase();
+    const exact = possibleValues.find((name) => name.toLowerCase() == typed);
+    if (typed && exact) select(exact);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key == "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setHighlighted((h) => Math.min(h + 1, suggestions.length - 1));
+    } else if (e.key == "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => Math.max(h - 1, 0));
+    } else if (e.key == "Enter") {
+      e.preventDefault();
+      if (suggestions.length > 0) select(suggestions[highlighted]);
+      else if (!inputValue.trim()) onSubmitEmpty?.();
+    } else if (e.key == "Escape") {
+      setOpen(false);
     }
+  };
+
+  const clear = () => {
+    setInputValue("");
+    setOpen(false);
+    selectedRef.current = "";
+    if (variant == "field") onChange("");
   };
 
   return (
-    <div className="autocomplete-wrapper">
-      <h6>{text}</h6>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        placeholder="Search for a player..."
-        className={className}
-      />
-      {suggestions.length > 0 && suggestions[0] != "" && (
-        <ul className="suggestions-list">
-          {suggestions.map((suggestion, index) => (
-            <li key={index} onClick={() => handleSuggestionClick(suggestion)}>
-              {suggestion}
-            </li>
-          ))}
+    <div className={`autocomplete autocomplete-${variant}`} ref={wrapperRef}>
+      <div className="autocomplete-control">
+        <SearchIcon size={16} className="autocomplete-icon" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          autoFocus={autoFocus}
+          onChange={(e) => handleTyping(e.target.value)}
+          onFocus={() => setOpen(true)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          role="combobox"
+          aria-expanded={open && suggestions.length > 0}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {inputValue && (
+          <button
+            type="button"
+            className="autocomplete-clear"
+            onClick={clear}
+            aria-label="Clear"
+          >
+            <CloseIcon size={12} />
+          </button>
+        )}
+        {variant == "search" && !inputValue && (
+          <kbd className="autocomplete-kbd">/</kbd>
+        )}
+      </div>
+      {open && inputValue.trim() && (
+        <ul className="suggestions" id={listId} role="listbox">
+          {suggestions.length == 0 ? (
+            <li className="suggestions-empty">No players match “{inputValue}”</li>
+          ) : (
+            suggestions.map((suggestion, index) => (
+              <li
+                key={suggestion}
+                role="option"
+                aria-selected={index == highlighted}
+                className={index == highlighted ? "is-highlighted" : ""}
+                onMouseEnter={() => setHighlighted(index)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  select(suggestion);
+                }}
+              >
+                {highlight(suggestion, inputValue.trim())}
+              </li>
+            ))
+          )}
         </ul>
       )}
-      <div id="nameHelp" className="form-text">
-        {helperText}
-      </div>
     </div>
   );
 };
