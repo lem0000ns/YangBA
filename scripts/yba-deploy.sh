@@ -2,6 +2,8 @@
 # Git push, routeHandler Lambda, and production frontend (S3 + CloudFront).
 set -euo pipefail
 
+export AWS_PAGER=""
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FRONTEND="$ROOT/yba-frontend"
 BACKEND="$ROOT/yba-backend"
