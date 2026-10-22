@@ -4,52 +4,48 @@
 
 **FPTS** (fantasy points) follows [ESPN’s default points-league scoring](https://fantasy.espn.com/basketball/settings):  
 `2×FGM − FGA + 3PM + 2×AST + REB + 4×(STL+BLK) − 2×TOV + PTS − missed FT`.  
-It is computed in SQL at query time (not stored in MySQL), so you can filter and rank on `fpts` like any other stat.
+It is computed in SQL at query time (not stored in MySQL), so you can filter and rank on FPTS like any other stat.
 
 ---
 
 ## User experience
 
-### Home (`/`)
+### Home
 
-Landing page introduces three tools (**Stats**, **Games**, **Rankings**), a live-style **FPTS** specimen card, and links to **Examples**. Press **`/`** anywhere to open player search (nav bar).
+Landing page introduces three tools (**Stats**, **Games**, **Rankings**), a live-style **FPTS** specimen card, and links to **Examples**. Press **`/`** anywhere to open player search from the nav bar.
 
-### Stats (`/stats` → `/stats/results/...`)
+### Stats
 
 Build a question about **one player** (optional) and **one stat**:
 
 - Pick stat (points, 3PM, FG%, FPTS, games played, etc.) and **metric**: total, per game, best game, or worst game.
-- Optionally narrow by **seasons** and **filters** (e.g. `points>40`).
+- Optionally narrow by **seasons** and **filters** using the filter builder (choose stat, comparison, and threshold).
 
 **Results** show the numeric answer, a short natural-language summary, and (when a player is named) a **percentile** vs all players in the same scope. Player names link to profiles.
 
-### Games (`/games` → `/games/results/...`)
+### Games
 
 Return up to **N box scores** that match criteria:
 
-- Optional **player**, **seasons**, and **filters** (e.g. `3pm>10`, `stage=3` for playoffs).
+- Optional **player**, **seasons**, and **filters** (same builder as Stats; can include game stage where supported).
 - Table includes date, team, stage, counting stats, and **FPTS** per game.
 
-### Rank (`/rank` → `/rank/results/...`)
+### Rankings
 
 **Leaderboard** of players by a stat and metric:
 
 - **How many players**, **stat**, **metric**, **most or least**.
-- Optional **team**, **seasons**, **playoff stage**, and **filters** (rank filters apply to per-game averages unless the stat is games played).
+- Optional **team**, **seasons**, **playoff stage**, and **filters** (for rank, filters compare per-game averages unless the stat is games played).
 
 Results are a ranked list; each row links to a player profile.
 
-### Player profile (`/players/:name`)
+### Player profile
 
-Loaded from the **`/players`** API: position, measurements, schools, draft, career span, teams timeline, awards, and intro blurb. Shortcuts jump to common Stats/Games queries for that player.
+Bio from the players API: position, measurements, schools, draft, career span, teams timeline, awards, and intro blurb. Shortcuts jump to common Stats and Games queries for that player.
 
-### Shareable URLs
+### Examples
 
-Form submits navigate to **path-encoded** result URLs (e.g. `/stats/results/stephen%20curry/2017/na/na/points/avg/na/na/na`). Bookmark or share the URL to reproduce the same query.
-
-### Examples (`/examples`)
-
-Curated links that deep-link into result pages for common query patterns.
+Curated sample queries you can open with one click to see how each tool works.
 
 ---
 
@@ -59,12 +55,10 @@ What happens when someone runs a query on the live site:
 
 ```
 Browser (React + Vite)
-  → ResultsPage reads URL params
-  → utilities.computeURL() builds query string (season, stat, agg, filter, …)
-  → GET https://…/dev/{stats|games|rank}?…
-       API Gateway (us-west-1)
+  → ResultsPage reads route parameters from the address bar
+  → utilities.computeURL() builds API query string (season, stat, agg, filter, …)
+  → GET API Gateway → stats | games | rank
   → Lambda routeHandler.lambda_handler
-       • Parses resource: stats | games | rank | players
        • StatComputer | GameComputer | RankComputer (query_utilities.py)
        • Fuzzy player name match vs S3 allNames.txt (FuzzyWuzzy)
        • SQL against MySQL: version2 ⨝ games (+ players for profiles)
@@ -75,16 +69,16 @@ Browser (React + Vite)
 | Frontend | Backend |
 |----------|---------|
 | `App.tsx` — routes, form → result navigation | `routeHandler.py` — HTTP dispatch, percentile for stats |
-| `pages/*Form.tsx` — query builders | `query_utilities.py` — SQL generation, FPTS expression |
+| `pages/*Form.tsx` — query builders, FilterBuilder | `query_utilities.py` — SQL generation, FPTS expression |
 | `pages/ResultsPage.tsx` — fetch + render | RDS `yba`: `version2`, `games`, `players` |
 | `content/PlayerInfo.tsx` — profile | `players` row from Wikipedia scrape |
-| `constants.ts`, `utilities.tsx` — labels & URL encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
+| `constants.ts`, `utilities.tsx` — labels & API encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
 
 **Local dev** runs only the frontend (`npm run dev`); it still calls the **deployed** API unless you change `baseURL` in `ResultsPage.tsx` / `PlayerInfo.tsx`.
 
 **Season note:** UI season labels are the **ending year** of a season (e.g. `2017` = 2016–17). The API is called with `season = UI value − 1`.
 
-**Filters:** Encoded in the URL as tokens like `points>30`, joined with `-` in the path and `,` in the API (`filter=points>30,ast>10`).
+**Filters:** The UI composes constraints in `FilterBuilder`; the frontend sends them to the API as a comma-separated `filter` query parameter, which `query_utilities` turns into SQL `AND` / `HAVING` clauses.
 
 ---
 
