@@ -5,9 +5,12 @@ export function useSlidingIndicator(
   containerRef: RefObject<HTMLElement>,
   activeKey: unknown
 ) {
-  const [style, setStyle] = useState<{ left: number; width: number } | null>(
-    null
-  );
+  const [style, setStyle] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -19,7 +22,12 @@ export function useSlidingIndicator(
         setStyle(null);
         return;
       }
-      setStyle({ left: active.offsetLeft, width: active.offsetWidth });
+      setStyle({
+        left: active.offsetLeft,
+        top: active.offsetTop,
+        width: active.offsetWidth,
+        height: active.offsetHeight,
+      });
     };
     measure();
     window.addEventListener("resize", measure);

@@ -26,7 +26,11 @@ const SegmentedControl = ({ options, value, onChange, size = "md", ariaLabel }: 
       {indicator && (
         <span
           className="segmented-thumb"
-          style={{ transform: `translateX(${indicator.left}px)`, width: indicator.width }}
+          style={{
+            transform: `translate(${indicator.left}px, ${indicator.top}px)`,
+            width: indicator.width,
+            height: indicator.height,
+          }}
         />
       )}
       {options.map((option) => (

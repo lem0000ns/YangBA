@@ -39,6 +39,7 @@
 
 .query-control {
   position: relative;
+  min-width: 0;
 }
 
 .query-control.span-2 {
@@ -291,25 +292,23 @@
 .segmented {
   position: relative;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
   max-width: 100%;
   padding: 4px;
-  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--cream);
-  scrollbar-width: none;
 }
 
 .segmented-thumb {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: 0;
   left: 0;
   border-radius: 7px;
   background: var(--card);
   box-shadow: var(--shadow-sm), 0 0 0 1px var(--line);
-  transition: transform 0.3s var(--ease), width 0.3s var(--ease);
+  transition: transform 0.3s var(--ease), width 0.3s var(--ease), height 0.3s var(--ease);
 }
 
 .segmented-option {
@@ -428,6 +427,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  max-width: 100%;
   min-height: 32px;
   padding: 5px 6px 5px 12px;
   border: 1px solid var(--lavender-line);
@@ -438,6 +438,11 @@
   font-size: 13px;
   font-weight: 600;
   animation: valueIn 0.25s var(--ease);
+}
+
+.filter-pill-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .filter-pill:not(:has(button)) {
@@ -655,7 +660,37 @@
   }
 
   .query-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .query-control-trigger,
+  .query-control-inline,
+  .query-control-value,
+  .filter-builder,
+  .filter-builder-row,
+  .filter-composer {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .query-control-inline > .segmented,
+  .filter-composer .segmented {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .query-control-inline > .segmented .segmented-option,
+  .filter-composer .segmented-option {
+    flex: 1 1 calc(50% - 2px);
+    max-width: 100%;
+    padding-right: 8px;
+    padding-left: 8px;
+    text-align: center;
+  }
+
+  .filter-composer .segmented-option {
+    flex-basis: calc(33.333% - 4px);
   }
 
   .query-card-footer {
@@ -679,5 +714,13 @@
   .filter-composer .select,
   .filter-composer .select-trigger {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .filter-composer .select-menu {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 }

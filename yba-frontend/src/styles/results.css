@@ -1,4 +1,5 @@
 .page-results {
+  min-width: 0;
   padding-top: 40px;
 }
 
@@ -6,6 +7,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   margin: -12px 0 28px;
 }
 
@@ -359,6 +362,8 @@
 /* Result card & tables */
 
 .result-card {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--card);
@@ -425,6 +430,8 @@
 }
 
 .table-scroll {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   border-radius: 0 0 16px 16px;
 }
@@ -952,7 +959,7 @@
 
 @media (max-width: 960px) {
   .stats-result {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .stats-result .player-card {

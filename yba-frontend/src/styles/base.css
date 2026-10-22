@@ -198,6 +198,10 @@ body.has-overlay .sheep-pattern {
   margin-right: auto;
 }
 
+.section-header-text {
+  min-width: 0;
+}
+
 .section-header-actions {
   display: flex;
   flex-shrink: 0;
