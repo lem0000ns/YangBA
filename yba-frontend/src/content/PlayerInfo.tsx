@@ -1,129 +1,146 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { filterTeams, filterBorn, filterSchools } from "./filter.tsx";
-import { defaultIcon, Image } from "./All.tsx";
+import {
+  filterTeams,
+  parseAwards,
+  parseBorn,
+  parseDraft,
+  parseMeasure,
+  parsePlace,
+  parsePlain,
+  type FactLine,
+} from "./filter.tsx";
+import {
+  Button,
+  EmptyState,
+  Loader,
+  PlayerAvatar,
+  ResultCard,
+} from "../components/All.tsx";
+
+const facts: { key: string; label: string; parse: (value: string | undefined) => FactLine[] }[] = [
+  { key: "born", label: "Born", parse: parseBorn },
+  { key: "height", label: "Height", parse: parseMeasure },
+  { key: "weight", label: "Weight", parse: parseMeasure },
+  { key: "draft", label: "Draft", parse: parseDraft },
+  { key: "career", label: "Career", parse: parsePlain },
+  { key: "high_school", label: "High school", parse: parsePlace },
+  { key: "college", label: "College", parse: parsePlace },
+];
 
 const PlayerInfo = () => {
   const { name } = useParams();
   const [info, setInfo] = useState<any>();
-  const [player, setPlayer] = useState<any>();
 
   useEffect(() => {
+    setInfo(undefined);
     axios
       .get(
         `https://vojed2b2fk.execute-api.us-west-1.amazonaws.com/dev/players?name=${name}`
       )
       .then((response) => {
         const playerData = response.data.player;
-
-        if (playerData.born) playerData.born = filterBorn(playerData.born);
-        if (playerData.teams) playerData.teams = filterTeams(playerData.teams);
-        if (playerData.high_school)
-          playerData.high_school = filterSchools(playerData.high_school);
-        if (playerData.college)
-          playerData.college = filterSchools(playerData.college);
-        if (playerData.awards) {
-          playerData.awards = filterSchools(playerData.awards);
-        }
-        setInfo(playerData);
-        const tempName = playerData.name
-          .replace(/[\s']/g, "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase();
-        console.log(
-          `https://d2qd9wn47agcqj.cloudfront.net/allPlayerImages/${tempName}.jpg`
-        );
-        setPlayer(
-          <img
-            src={`https://d2qd9wn47agcqj.cloudfront.net/allPlayerImages/${tempName}.jpg`}
-            alt={`Image of ${playerData.name}`}
-            className="player-profile-image"
-            onError={() => setPlayer(<Image source={defaultIcon}></Image>)}
-          />
-        );
-        console.log(player);
+        setInfo(playerData ?? "We don't have information on this player.");
       })
       .catch((error) => {
-        setInfo("Sorry - we don't have information on this player");
+        setInfo("We don't have information on this player.");
         console.log(error);
       });
   }, [name]);
 
   if (!info) {
     return (
-      <div
-        style={{
-          color: "white",
-          paddingTop: "15vh",
-          paddingLeft: "20vw",
-          fontSize: "36px",
-        }}
-      >
-        Loading...
+      <div className="page">
+        <Loader label="Loading player" />
       </div>
     );
   }
 
+  if (typeof info == "string") {
+    return (
+      <div className="page">
+        <EmptyState
+          title="Player not found"
+          message={info}
+          action={<Button to="/" arrow>Back home</Button>}
+        />
+      </div>
+    );
+  }
+
+  const encoded = encodeURIComponent(info.name);
+  const details = facts
+    .map((fact) => ({ ...fact, lines: fact.parse(info[fact.key]) }))
+    .filter((fact) => fact.lines.length > 0);
+  const mainFacts = details.filter((fact) => fact.key != "high_school" && fact.key != "college");
+  const schoolFacts = details.filter((fact) => fact.key == "high_school" || fact.key == "college");
+  const teams = info.teams ? filterTeams(info.teams) : null;
+  const awards = parseAwards(info.awards);
+
   return (
-    <div className="player-profile-container">
-      <h1 className="player-profile-name">{info.name}</h1>
-
-      <h5 className="player-profile-intro">{info.intro}</h5>
-
-      <div className="basicInfo-image-container">
-        <div className="player-profile-basicInfo">
-          {info.pos && <h5 className="player-profile-label">Position(s):</h5>}
-          <h5 className="player-profile-pos">{info.pos}</h5>
-
-          {info.born && <h5 className="player-profile-label">Born:</h5>}
-          <h5 className="player-profile-born">{info.born}</h5>
-
-          {info.height && <h5 className="player-profile-label">Height:</h5>}
-          <h5 className="player-profile-height">{info.height}</h5>
-
-          {info.weight && <h5 className="player-profile-label">Weight:</h5>}
-          <h5 className="player-profile-weight">{info.weight}</h5>
-
-          {info.high_school && (
-            <h5 className="player-profile-label">High school(s):</h5>
-          )}
-          <h5 className="player-profile-hs">{info.high_school}</h5>
-
-          {info.college && (
-            <h5 className="player-profile-label">College(s):</h5>
-          )}
-          <h5 className="player-profile-college">{info.college}</h5>
-
-          {info.draft && <h5 className="player-profile-label">Draft:</h5>}
-          <h5 className="player-profile-draft">{info.draft}</h5>
-
-          {info.career && (
-            <h5 className="player-profile-label">Career Timeline:</h5>
-          )}
-          <h5 className="player-profile-career">{info.career}</h5>
+    <div className="page page-player">
+      <section className="profile-hero reveal">
+        <div className="profile-portrait">
+          <PlayerAvatar name={info.name} size="xl" />
         </div>
-
-        <div
-          className="player-profile-image-container"
-          style={{ width: "50%" }}
-        >
-          {player}
+        <div className="profile-heading">
+          {info.pos && <div className="eyebrow">{info.pos}</div>}
+          <h1 className="profile-name">{info.name}</h1>
+          {info.intro && <p className="profile-intro">{info.intro}</p>}
+          <div className="profile-actions">
+            <Button to={`/stats/results/${encoded}/na/na/na/points/avg/na/na/na`} size="sm" arrow>
+              Career points per game
+            </Button>
+            <Button to={`/stats/results/${encoded}/na/na/na/points/max/na/na/na`} size="sm" variant="secondary">
+              Career high
+            </Button>
+            <Button to={`/games/results/${encoded}/na/na/25`} size="sm" variant="ghost">
+              Game log
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="player-profile-teamsAwards">
-        <h5 className="player-profile-label" style={{ marginTop: "2.5rem" }}>
-          Playing history:
-        </h5>
-        <h5 className="player-profile-teams">{info.teams}</h5>
+      {details.length > 0 && (
+        <div className="profile-facts">
+          {[mainFacts, schoolFacts].filter((row) => row.length > 0).map((row) => (
+            <dl className="profile-facts-row" key={row[0].key} style={{ ["--cols" as string]: row.length }}>
+              {row.map((fact) => (
+                <div className="profile-fact" key={fact.key}>
+                  <dt>{fact.label}</dt>
+                  <dd>
+                    {fact.lines.map((line, index) => (
+                      <span className="profile-fact-line" key={index}>
+                        <span className="profile-fact-primary">{line.primary}</span>
+                        {line.secondary && <span className="profile-fact-secondary">{line.secondary}</span>}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ))}
+        </div>
+      )}
 
-        <h5 className="player-profile-label" style={{ marginTop: "2rem" }}>
-          Awards:{" "}
-        </h5>
-        <h5 className="player-profile-awards">{info.awards}</h5>
-      </div>
+      {(teams || awards.length > 0) && (
+        <div className="profile-columns">
+          {teams && <ResultCard title="Teams">{teams}</ResultCard>}
+          {awards.length > 0 && (
+            <ResultCard title="Awards">
+              <ul className="awards">
+                {awards.map((award, index) => (
+                  <li key={`${award.name}-${index}`}>
+                    <span className="award-name">{award.name}</span>
+                    {award.years && <span className="award-years tabular">{award.years}</span>}
+                  </li>
+                ))}
+              </ul>
+            </ResultCard>
+          )}
+        </div>
+      )}
     </div>
   );
 };

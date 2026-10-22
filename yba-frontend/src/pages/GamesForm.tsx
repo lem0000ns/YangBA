@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import {
-  MultiSelect,
-  InputForm,
-  Modal,
   Autocomplete,
-  Input_Tags,
+  FilterBuilder,
+  NumberField,
+  QueryCard,
+  QueryControl,
+  SectionHeader,
 } from "../components/All";
-import namesList from "./allNames.txt?raw";
+import { GAME_FILTER_STATS } from "../constants";
+import { getStatInfo } from "../utilities";
+import { SeasonPicker, allNames, describeSeasons } from "./queryFields";
 
 interface Props {
   onSubmit: (
@@ -18,94 +21,83 @@ interface Props {
 }
 
 const GamesForm = ({ onSubmit }: Props) => {
-  const allNames = namesList.split("\n");
   const [nameValue, setNameValue] = useState("");
   const [seasons, setSeasons] = useState<string[]>([]);
   const [filters, setFilters] = useState<string[]>([]);
   const [limit, setLimit] = useState(-1);
   const [error, setError] = useState("");
+  const [formKey, setFormKey] = useState(0);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (limit == -1) setError("'Number of games' is a required field");
     else onSubmit(nameValue, seasons, filters, limit);
   };
 
+  const reset = () => {
+    setNameValue("");
+    setSeasons([]);
+    setFilters([]);
+    setLimit(-1);
+    setError("");
+    setFormKey((k) => k + 1);
+  };
+
+  const preview =
+    limit == -1
+      ? "Choose how many games to show."
+      : getStatInfo(nameValue, "", "", seasons, filters, "", limit, "", "");
+
   return (
-    <section className="games-background">
-      <form className="path_page" onSubmit={handleSubmit}>
-        <InputForm
-          inputType="number of games"
-          helperText="determines how many games will be returned"
-          onChange={(value: string) => setLimit(Number(value))}
-        ></InputForm>
+    <div className="page page-query">
+      <SectionHeader
+        size="hero"
+        align="center"
+        eyebrow="Games"
+        title="Find games"
+        description="Get box scores that match your filters."
+      />
 
-        <Autocomplete
-          possibleValues={allNames}
-          text="Enter name (optional)"
-          onChange={(value: string) => setNameValue(value)}
-        />
+      <QueryCard
+        key={formKey}
+        title="Game search"
+        onSubmit={handleSubmit}
+        onReset={reset}
+        submitLabel="Search"
+        preview={preview}
+        error={error}
+      >
+        <QueryControl label="Number of games" required invalid={!!error && limit == -1}>
+          <NumberField
+            value={limit}
+            onChange={(value) => {
+              setLimit(value);
+              setError("");
+            }}
+            presets={[10, 25, 50, 100]}
+            unit="games"
+          />
+        </QueryControl>
 
-        <MultiSelect
-          text="Select a season or range of seasons (optional)"
-          options={[
-            "2016",
-            "2017",
-            "2018",
-            "2019",
-            "2020",
-            "2021",
-            "2022",
-            "2023",
-            "2024",
-          ]}
-          onChange={(options: string[]) => setSeasons(options)}
-        ></MultiSelect>
+        <QueryControl label="Season" value={describeSeasons(seasons)} placeholder="All seasons">
+          <SeasonPicker value={seasons} onChange={setSeasons} />
+        </QueryControl>
 
-        <br />
+        <QueryControl label="Player" span={2}>
+          <Autocomplete possibleValues={allNames} onChange={(value) => setNameValue(value)} placeholder="All players" />
+        </QueryControl>
 
-        <Modal
-          title="Filter criteria? (optional)"
-          enterMessage="Enter filter"
-          textBox={
-            <Input_Tags
-              tags={filters}
-              addFilters={(event) =>
-                setFilters([...filters, event.target.value])
-              }
-              removeFilters={(indexToRemove) =>
-                setFilters(
-                  filters.filter((_, index) => index !== indexToRemove)
-                )
-              }
-            ></Input_Tags>
-          }
-          helperText={[
-            "stats: points, fgm, fga, ftm, fta, 3pm, 3pa, 3pct, fgpct, ftpct, ast, reb, steals, blocks, turnovers, min, OPI, stage",
-            "op: >, <, =",
-            "'num' guidelines: use decimal for percents, stage = (1: preseason, 2: regular season, 3-5: playoffs)",
-          ]}
-        />
-
-        {filters.length > 0 && <p>Filter: {filters.join(", ")}</p>}
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ marginTop: "20px" }}
-        >
-          Submit
-        </button>
-
-        {error && (
-          <div className="alert-container" style={{ marginBottom: "100px" }}>
-            <div className="alert alert-danger" role="alert">
-              {error}
-            </div>
-          </div>
-        )}
-      </form>
-    </section>
+        <QueryControl label="Filters" span={2}>
+          <FilterBuilder
+            filters={filters}
+            stats={GAME_FILTER_STATS}
+            onAdd={(filter) => setFilters([...filters, filter])}
+            onRemove={(indexToRemove) => setFilters(filters.filter((_, index) => index !== indexToRemove))}
+            note="Each filter applies to a single game."
+          />
+        </QueryControl>
+      </QueryCard>
+    </div>
   );
 };
 

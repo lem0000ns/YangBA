@@ -1,44 +1,15 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import {
-  Dropdown,
-  MultiSelect,
-  InputForm,
-  Modal,
-  Input_Tags,
+  FilterBuilder,
+  NumberField,
+  QueryCard,
+  QueryControl,
+  SectionHeader,
+  SegmentedControl,
 } from "../components/All";
-
-const teamAbbreviations = [
-  "ATL",
-  "BOS",
-  "BKN",
-  "CHA",
-  "CHI",
-  "CLE",
-  "DAL",
-  "DEN",
-  "DET",
-  "GSW",
-  "HOU",
-  "IND",
-  "LAC",
-  "LAL",
-  "MEM",
-  "MIA",
-  "MIL",
-  "MIN",
-  "NOP",
-  "NYK",
-  "OKC",
-  "ORL",
-  "PHI",
-  "PHX",
-  "POR",
-  "SAC",
-  "SAS",
-  "TOR",
-  "UTA",
-  "WAS",
-];
+import { AGG_OPTIONS, RANK_FILTER_STATS, STAGES, TEAMS, statLabel } from "../constants";
+import { getStatInfo } from "../utilities";
+import { SeasonPicker, StatPicker, TeamPicker, describeSeasons, useFptsInfo } from "./queryFields";
 
 interface Props {
   onSubmit: (
@@ -54,167 +25,158 @@ interface Props {
 }
 
 const RankForm = ({ onSubmit }: Props) => {
-  const [aggValue, setAggValue] = useState("Select a metric");
-  const [statValue, setStatValue] = useState("Select a stat");
-  const [order, setOrder] = useState("Select order");
+  const [aggValue, setAggValue] = useState("");
+  const [statValue, setStatValue] = useState("");
+  const [order, setOrder] = useState("Most");
   const [limit, setLimit] = useState(-1);
-  const [team, setTeam] = useState("Select team (optional)");
+  const [team, setTeam] = useState("");
   const [seasons, setSeasons] = useState<string[]>([]);
-  const [stage, setStage] = useState("Select a stage (optional)");
+  const [stage, setStage] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [formKey, setFormKey] = useState(0);
+  const fpts = useFptsInfo();
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    aggValue == "Select a metric" ||
-    statValue == "Select a stat" ||
-    order == "Select order" ||
-    limit == -1
-      ? setError(
-          "'Number of players', 'Agg', 'Stat', and 'Order' are required fields"
-        )
-      : onSubmit(
-          aggValue,
-          statValue,
-          order,
-          limit,
-          team,
-          seasons,
-          stage,
-          filters
-        );
+    aggValue == "" || statValue == "" || order == "" || limit == -1
+      ? setError("'Number of players', 'Agg', 'Stat', and 'Order' are required fields")
+      : onSubmit(aggValue, statValue, order, limit, team, seasons, stage, filters);
   };
 
+  const reset = () => {
+    setAggValue("");
+    setStatValue("");
+    setOrder("Most");
+    setLimit(-1);
+    setTeam("");
+    setSeasons([]);
+    setStage("");
+    setFilters([]);
+    setError("");
+    setFormKey((k) => k + 1);
+  };
+
+  const ready = aggValue != "" && statValue != "" && limit != -1;
+  const preview = ready
+    ? getStatInfo("", statValue, aggValue, seasons, filters, team, limit, order, stage)
+    : "Choose a number of players, a stat, and a metric.";
+
   return (
-    <section className="rank-background">
-      <form className="path_page" onSubmit={handleSubmit}>
-        <InputForm
-          inputType="number of players"
-          helperText="determines how many players will be ranked"
-          onChange={(value: string) => setLimit(Number(value))}
-        ></InputForm>
+    <div className="page page-query">
+      <SectionHeader
+        size="hero"
+        align="center"
+        eyebrow="Rankings"
+        title="Rank players"
+        description="Build a leaderboard for any stat."
+      />
 
-        <div className="rank-dropdowns1">
-          <Dropdown
-            text={aggValue}
-            color="light"
-            options={["sum", "avg", "max", "min"]}
-            handleClick={(name: string) => setAggValue(name)}
-          ></Dropdown>
-
-          <Dropdown
-            text={statValue}
-            color="light"
+      <QueryCard
+        key={formKey}
+        title="Leaderboard"
+        onSubmit={handleSubmit}
+        onReset={reset}
+        submitLabel="Rank"
+        preview={preview}
+        error={error}
+      >
+        <QueryControl label="Order" required>
+          <SegmentedControl
+            ariaLabel="Order"
+            value={order}
+            onChange={setOrder}
             options={[
-              "points",
-              "fgm",
-              "fga",
-              "ftm",
-              "fta",
-              "3pm",
-              "3pa",
-              "3pct",
-              "fgpct",
-              "ftpct",
-              "ast",
-              "reb",
-              "steals",
-              "blocks",
-              "turnovers",
-              "min",
-              "OPI",
-              "games",
+              { value: "Most", label: "Top" },
+              { value: "Least", label: "Bottom" },
             ]}
-            handleClick={(stat: string) => setStatValue(stat)}
-          ></Dropdown>
-        </div>
+          />
+        </QueryControl>
 
-        <div className="rank-dropdowns2">
-          <Dropdown
-            text={order}
-            options={["Most", "Least"]}
-            handleClick={(order: string) => setOrder(order)}
-          ></Dropdown>
+        <QueryControl label="Number of players" required invalid={!!error && limit == -1}>
+          <NumberField
+            value={limit}
+            onChange={(value) => {
+              setLimit(value);
+              setError("");
+            }}
+            presets={[5, 10, 25, 50]}
+            unit="players"
+          />
+        </QueryControl>
 
-          <Dropdown
-            text={team}
-            options={teamAbbreviations}
-            handleClick={(team: string) => setTeam(team)}
-          ></Dropdown>
-        </div>
-
-        <MultiSelect
-          text="Select a season or range of seasons (optional)"
-          options={[
-            "2016",
-            "2017",
-            "2018",
-            "2019",
-            "2020",
-            "2021",
-            "2022",
-            "2023",
-            "2024",
-          ]}
-          onChange={(options: string[]) => setSeasons(options)}
-        ></MultiSelect>
-
-        <Dropdown
-          text={stage}
-          color="light"
-          options={["Preseason", "Regular Season", "Playoffs"]}
-          handleClick={(stage: string) => setStage(stage)}
-        ></Dropdown>
-
-        <Modal
-          title="Filter criteria? (optional)"
-          enterMessage="Enter filter"
-          textBox={
-            <Input_Tags
-              tags={filters}
-              addFilters={(event) =>
-                setFilters([...filters, event.target.value])
-              }
-              removeFilters={(indexToRemove) =>
-                setFilters(
-                  filters.filter((_, index) => index !== indexToRemove)
-                )
-              }
-            ></Input_Tags>
-          }
-          helperText={[
-            "stats: points, fgm, fga, ftm, fta, 3pm, 3pa, 3pct, fgpct, ftpct, ast, reb, steals, blocks, turnovers, min, OPI, games",
-            "op: >, <, =",
-            "'num' guidelines: use percent for decimal",
-          ]}
-        />
-
-        {filters.length > 0 && <p>Filter: {filters.join(", ")}</p>}
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ marginTop: "20px" }}
+        <QueryControl
+          label="Stat"
+          required
+          value={statValue && statLabel(statValue)}
+          placeholder="Choose a stat"
+          popoverWidth="wide"
+          invalid={!!error && !statValue}
         >
-          Submit
-        </button>
+          {(close) => (
+            <StatPicker
+              value={statValue}
+              onFptsInfo={fpts.open}
+              onChange={(stat) => {
+                setStatValue(stat);
+                setError("");
+                close();
+              }}
+            />
+          )}
+        </QueryControl>
 
-        {error && (
-          <div
-            className="alert-container"
-            style={{ marginTop: "10px", marginBottom: "100px" }}
-          >
-            <div
-              className="alert alert-danger"
-              style={{ width: "450px" }}
-              role="alert"
-            >
-              {error}
-            </div>
-          </div>
-        )}
-      </form>
-    </section>
+        <QueryControl label="Team" value={team && `${team} · ${TEAMS[team]}`} placeholder="Any team" popoverWidth="wide">
+          {(close) => (
+            <TeamPicker
+              value={team}
+              onChange={(value) => {
+                setTeam(value);
+                close();
+              }}
+            />
+          )}
+        </QueryControl>
+
+        <QueryControl label="Metric" required span={2} invalid={!!error && !aggValue}>
+          <SegmentedControl
+            ariaLabel="Metric"
+            value={aggValue}
+            onChange={(value) => {
+              setAggValue(value);
+              setError("");
+            }}
+            options={AGG_OPTIONS}
+          />
+        </QueryControl>
+
+        <QueryControl label="Season" value={describeSeasons(seasons)} placeholder="All seasons">
+          <SeasonPicker value={seasons} onChange={setSeasons} />
+        </QueryControl>
+
+        <QueryControl label="Stage">
+          <SegmentedControl
+            size="sm"
+            ariaLabel="Stage"
+            value={stage}
+            onChange={setStage}
+            options={[{ value: "", label: "All" }, ...STAGES.map((s) => ({ value: s, label: s == "Regular Season" ? "Regular" : s }))]}
+          />
+        </QueryControl>
+
+        <QueryControl label="Filters" span={2}>
+          <FilterBuilder
+            filters={filters}
+            stats={RANK_FILTER_STATS}
+            onAdd={(filter) => setFilters([...filters, filter])}
+            onRemove={(indexToRemove) => setFilters(filters.filter((_, index) => index !== indexToRemove))}
+            note="Filters use per-game averages."
+            perGame
+          />
+        </QueryControl>
+      </QueryCard>
+      {fpts.dialog}
+    </div>
   );
 };
 

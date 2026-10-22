@@ -1,59 +1,115 @@
-const cleanUnicode = (str: string) => {
-  str = str.replace("u2013", "\u2013");
-  str = str.replace("u2192", "\u2192");
-  return str;
+export interface FactLine {
+  primary: string;
+  secondary?: string;
+}
+
+export interface Award {
+  name: string;
+  years?: string;
+}
+
+const tidy = (value: string) =>
+  value
+    .replace(/\u00a0/g, " ")
+    .replace(/\[\w+\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const cleanUnicode = (value: string) =>
+  tidy(value).replace(/u2013/g, "\u2013").replace(/u2192/g, "\u2192");
+
+const blank = (value: string | null | undefined) => {
+  if (!value) return "";
+  const text = tidy(value);
+  return !text || text.toLowerCase() == "none" ? "" : text;
 };
 
-export const filterBorn = (born: string) => {
-  let lastParenIndex = born.lastIndexOf(")");
-  if (lastParenIndex == -1) {
-    return <div>{born}</div>;
+const splitParen = (line: string): FactLine => {
+  const match = line.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (!match) return { primary: line };
+  return { primary: match[1].trim(), secondary: match[2].trim() };
+};
+
+export const parseBorn = (value: string | null | undefined): FactLine[] => {
+  const text = blank(value);
+  if (!text) return [];
+  const match = text.match(/^(?:\(\d{4}-\d{2}-\d{2}\)\s*)?(.+?)\s*\(age[^)]*\)\s*(.*)$/);
+  if (!match) return [splitParen(text)];
+  const place = match[2].trim();
+  return [{ primary: match[1].trim(), secondary: place || undefined }];
+};
+
+export const parseMeasure = (value: string | null | undefined): FactLine[] => {
+  const text = blank(value);
+  return text ? [splitParen(text)] : [];
+};
+
+export const parseDraft = (value: string | null | undefined): FactLine[] => {
+  const text = blank(value);
+  if (!text) return [];
+  const pick = text.match(/^(\d{4}):\s*(\d+\w*)\s+round,\s*(\d+\w*)\s+overall(?:\s+pick)?/i);
+  if (pick) return [{ primary: `${pick[3]} overall`, secondary: `${pick[1]} · ${pick[2]} round` }];
+  const undrafted = text.match(/^(\d{4}):\s*undrafted/i);
+  if (undrafted) return [{ primary: "Undrafted", secondary: undrafted[1] }];
+  return [{ primary: text }];
+};
+
+export const parsePlain = (value: string | null | undefined): FactLine[] => {
+  const text = blank(value);
+  return text ? [{ primary: text }] : [];
+};
+
+export const parsePlace = (value: string | null | undefined): FactLine[] => {
+  if (!value) return [];
+  return value
+    .split("\n")
+    .map(tidy)
+    .filter((line) => line && line.toLowerCase() != "none")
+    .map(splitParen);
+};
+
+export const parseAwards = (value: string | null | undefined): Award[] => {
+  if (!value) return [];
+  return value
+    .split("\n")
+    .map(tidy)
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+      if (!match) return { name: line };
+      const years = match[2].trim();
+      return { name: match[1].trim(), years: years || undefined };
+    })
+    .filter((award) => award.name);
+};
+
+export const filterTeams = (teams: string) => {
+  let parsed: Record<string, string>[];
+  try {
+    parsed = JSON.parse(teams);
+  } catch {
+    return null;
   }
-  let firstParenIndex = born.lastIndexOf(")", lastParenIndex - 1);
-  return (
-    <>
-      <div>{born.slice(firstParenIndex + 1, lastParenIndex + 1)}</div>
-      <div>{born.slice(lastParenIndex + 1).replace("[a]", "")}</div>
-    </>
-  );
-};
+  if (!Array.isArray(parsed) || parsed.length == 0) return null;
 
-export const filterTeams = (teams: any) => {
-  const teams_json = JSON.parse(teams);
-  const teams_json_data = teams_json.map((item: JSON) => {
-    const [[tempYear, tempTeam]] = Object.entries(item) as [[string, string]];
-    const year = cleanUnicode(tempYear);
-    const team = cleanUnicode(tempTeam);
-    return (
-      <tr>
-        <td>{year}</td>
-        <td>{team}</td>
-      </tr>
-    );
-  });
   return (
-    <div className="teams-table-container">
-      <table>
-        <tbody>{teams_json_data}</tbody>
-      </table>
-    </div>
-  );
-};
-
-export const filterSchools = (schools: any) => {
-  let tempSchools = schools.split("\n");
-  tempSchools = tempSchools.filter((item: string) => item != "");
-  return (
-    <div>
-      {tempSchools.map((curr: string) => {
-        let firstParen = curr.indexOf("(");
-        curr = curr.slice(0, firstParen) + " " + curr.slice(firstParen);
+    <ol className="timeline">
+      {parsed.map((item, index) => {
+        const [[rawYear, rawTeam]] = Object.entries(item);
+        const year = cleanUnicode(rawYear);
+        const team = cleanUnicode(rawTeam);
+        const affiliate = team.startsWith("\u2192");
+        const current = /present/i.test(year);
+        const className = [affiliate ? "is-affiliate" : "", current ? "is-current" : ""]
+          .filter(Boolean)
+          .join(" ");
         return (
-          <div key={curr} style={{ marginTop: "10px" }}>
-            {curr}
-          </div>
+          <li key={`${year}-${team}-${index}`} className={className || undefined}>
+            <span className="timeline-year tabular">{year}</span>
+            <span className="timeline-team">{affiliate ? team.slice(1).trim() : team}</span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 };

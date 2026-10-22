@@ -1,3 +1,11 @@
+import {
+  PCT_STATS,
+  TEAMS,
+  describeFilter,
+  seasonLabel,
+  statLabel,
+} from "./constants";
+
 function computeURL(
   name: string,
   stat: string,
@@ -54,71 +62,53 @@ function getStatInfo(
   order: string,
   stage: string
 ) {
-  let res = "";
-  if (name != "") {
-    res += name + "'s ";
-  }
+  const parts: string[] = [];
+  if (name != "") parts.push(`${name}'s`);
+
   //rank
   if (order != "") {
-    order == "Most"
-      ? (res += "Top " + limit + " players based on ")
-      : (res += "Bottom " + limit + " players based on ");
+    parts.push(`${order == "Most" ? "Top" : "Bottom"} ${limit} players by`);
   }
   //games
   else if (stat == "") {
-    res += limit == 1 ? " game" : " games";
+    const count = Number(limit);
+    parts.push(count > 0 ? `${count} ${count == 1 ? "game" : "games"}` : "games");
   }
   //rank or stats
   if (stat != "") {
-    agg == "sum"
-      ? (res += ` total ${stat}`)
-      : agg == "avg"
-      ? (res += ` average ${stat} per game`)
-      : agg == "max"
-      ? (res += ` most ${stat}`)
-      : (res += ` least ${stat}`);
+    const label = statLabel(stat).toLowerCase();
+    if (stat == "games") parts.push("games played");
+    else if (PCT_STATS.includes(stat) && agg != "max" && agg != "min")
+      parts.push(label);
+    else if (agg == "sum") parts.push(`total ${label}`);
+    else if (agg == "avg") parts.push(`${label} per game`);
+    else if (agg == "max") parts.push(`most ${label} in a game`);
+    else parts.push(`fewest ${label} in a game`);
   }
 
   if (team != "" && team != "Select team (optional)") {
-    res += ` on ${team} `;
+    parts.push(`on the ${TEAMS[team] ?? team}`);
   }
 
   if (seasons.length == 1 && seasons[0] != "") {
-    res += ` in ${seasons[0]}`;
+    parts.push(`in ${seasonLabel(seasons[0])}`);
   } else if (seasons.length > 1) {
-    res += " in the given seasons";
+    parts.push(`across ${seasons.length} seasons`);
   }
 
   if (filters.length > 0) {
-    res += " where ";
-    for (let i = 0; i < filters.length; i++) {
-      let currFilter = filters[i];
-      let foundOp = false;
-      let currStat = "";
-      let op = "";
-      let num = "";
-      for (let j = 0; j < currFilter.length; j++) {
-        if (
-          currFilter[j] == ">" ||
-          currFilter[j] == "<" ||
-          currFilter[j] == "="
-        ) {
-          foundOp = true;
-          op = currFilter[j];
-        } else {
-          foundOp ? (num += currFilter[j]) : (currStat += currFilter[j]);
-        }
-      }
-      res += `${currStat} ${op} ${num}, `;
-    }
-    res = res.slice(0, -2);
+    const described = filters.map((f) => {
+      const text = describeFilter(f, order != "");
+      return text.charAt(0).toLowerCase() + text.slice(1);
+    });
+    parts.push(`with ${described.join(", ")}`);
   }
 
   if (stage != "" && stage != "Select a stage (optional)") {
-    res += ` during the ${stage.toLowerCase()}`;
+    parts.push(`during the ${stage.toLowerCase()}`);
   }
 
-  return res;
+  return parts.join(" ");
 }
 
 export { computeURL, getStatInfo };

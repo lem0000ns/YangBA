@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import {
-  Dropdown,
-  MultiSelect,
-  Modal,
   Autocomplete,
-  Input_Tags,
+  FilterBuilder,
+  QueryCard,
+  QueryControl,
+  SectionHeader,
+  SegmentedControl,
 } from "../components/All";
-import namesList from "./allNames.txt?raw";
+import { AGG_OPTIONS, GAME_FILTER_STATS, PCT_STATS, statLabel } from "../constants";
+import { getStatInfo } from "../utilities";
+import { SeasonPicker, StatPicker, allNames, describeSeasons, useFptsInfo } from "./queryFields";
 
 interface Props {
   onSubmit: (
@@ -19,134 +22,125 @@ interface Props {
 }
 
 const StatsForm = ({ onSubmit }: Props) => {
-  const allNames = namesList.split("\n");
   const [nameValue, setNameValue] = useState("");
-  const [statValue, setStatValue] = useState("Select a stat");
-  const [aggValue, setAggValue] = useState("Select a metric");
+  const [statValue, setStatValue] = useState("");
+  const [aggValue, setAggValue] = useState("");
   const [seasons, setSeasons] = useState<string[]>([]);
   const [filters, setFilters] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [formKey, setFormKey] = useState(0);
+  const fpts = useFptsInfo();
 
   const handleStatClick = (name: string) => {
     setStatValue(name);
+    setError("");
     if (name == "games") setAggValue("sum");
+    else if (PCT_STATS.includes(name) && aggValue == "sum") setAggValue("avg");
   };
 
   const handleAggClick = (agg: string) => {
     if (statValue != "games") {
       setAggValue(agg);
+      setError("");
     }
   };
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    statValue == "Select a stat" || aggValue == "Select a metric"
+    statValue == "" || aggValue == ""
       ? setError("'Stat' and 'Agg' are required fields")
       : onSubmit(nameValue, statValue, aggValue, seasons, filters);
   };
 
+  const reset = () => {
+    setNameValue("");
+    setStatValue("");
+    setAggValue("");
+    setSeasons([]);
+    setFilters([]);
+    setError("");
+    setFormKey((k) => k + 1);
+  };
+
+  const ready = statValue != "" && aggValue != "";
+  const preview = ready
+    ? getStatInfo(nameValue, statValue, aggValue, seasons, filters, "", -1, "", "")
+    : "Choose a stat and a metric.";
+
   return (
-    <section className="stats-background">
-      <form className="path_page" onSubmit={handleSubmit}>
-        <Dropdown
-          text={statValue}
-          color="light"
-          options={[
-            "points",
-            "fgm",
-            "fga",
-            "ftm",
-            "fta",
-            "3pm",
-            "3pa",
-            "3pct",
-            "fgpct",
-            "ftpct",
-            "ast",
-            "reb",
-            "steals",
-            "blocks",
-            "turnovers",
-            "min",
-            "OPI",
-            "games",
-          ]}
-          handleClick={handleStatClick}
-        />
+    <div className="page page-query">
+      <SectionHeader
+        size="hero"
+        align="center"
+        eyebrow="Stats"
+        title="Explore the NBA"
+        description="Look up any stat for a player or the whole league."
+      />
 
-        <Dropdown
-          text={aggValue}
-          color="light"
-          options={["sum", "avg", "max", "min"]}
-          handleClick={handleAggClick}
-        />
+      <QueryCard
+        key={formKey}
+        title="Stat query"
+        onSubmit={handleSubmit}
+        onReset={reset}
+        submitLabel="Search"
+        preview={preview}
+        error={error}
+      >
+        <QueryControl label="Player" span={2}>
+          <Autocomplete possibleValues={allNames} onChange={(value) => setNameValue(value)} placeholder="All players" />
+        </QueryControl>
 
-        <Autocomplete
-          possibleValues={allNames}
-          text="Enter name (optional)"
-          onChange={(value: string) => setNameValue(value)}
-        />
-
-        <MultiSelect
-          text="Select a season or range of seasons (optional)"
-          options={[
-            "2016",
-            "2017",
-            "2018",
-            "2019",
-            "2020",
-            "2021",
-            "2022",
-            "2023",
-            "2024",
-          ]}
-          onChange={(options: string[]) => setSeasons(options)}
-        />
-
-        <br />
-
-        <Modal
-          title="Filter criteria? (optional)"
-          enterMessage="Enter filter"
-          textBox={
-            <Input_Tags
-              tags={filters}
-              addFilters={(event) =>
-                setFilters([...filters, event.target.value])
-              }
-              removeFilters={(indexToRemove) =>
-                setFilters(
-                  filters.filter((_, index) => index !== indexToRemove)
-                )
-              }
-            ></Input_Tags>
-          }
-          helperText={[
-            "stats: points, fgm, fga, ftm, fta, 3pm, 3pa, 3pct, fgpct, ftpct, ast, reb, steals, blocks, turnovers, min, OPI, stage",
-            "op: >, <, =",
-            "'num' guidelines: use decimal for percents, stage = (1: preseason, 2: regular season, 3-5: playoffs)",
-          ]}
-        />
-
-        {filters.length > 0 && <p>Filter: {filters.join(", ")}</p>}
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ marginTop: "20px" }}
+        <QueryControl
+          label="Stat"
+          required
+          value={statValue && statLabel(statValue)}
+          placeholder="Choose a stat"
+          popoverWidth="wide"
+          invalid={!!error && !statValue}
         >
-          Submit
-        </button>
+          {(close) => (
+            <StatPicker
+              value={statValue}
+              onFptsInfo={fpts.open}
+              onChange={(stat) => {
+                handleStatClick(stat);
+                close();
+              }}
+            />
+          )}
+        </QueryControl>
 
-        {error && (
-          <div className="alert-container" style={{ marginBottom: "100px" }}>
-            <div className="alert alert-danger" role="alert">
-              {error}
-            </div>
-          </div>
-        )}
-      </form>
-    </section>
+        <QueryControl label="Season" value={describeSeasons(seasons)} placeholder="All seasons">
+          <SeasonPicker value={seasons} onChange={setSeasons} />
+        </QueryControl>
+
+        <QueryControl label="Metric" required span={2} invalid={!!error && !aggValue}>
+          <SegmentedControl
+            ariaLabel="Metric"
+            value={aggValue}
+            onChange={handleAggClick}
+            options={AGG_OPTIONS.map((option) => ({
+              ...option,
+              disabled:
+                (statValue == "games" && option.value != "sum") ||
+                (PCT_STATS.includes(statValue) && option.value == "sum"),
+              hint: statValue == "games" ? "Games played is always a total" : undefined,
+            }))}
+          />
+        </QueryControl>
+
+        <QueryControl label="Filters" span={2}>
+          <FilterBuilder
+            filters={filters}
+            stats={GAME_FILTER_STATS}
+            onAdd={(filter) => setFilters([...filters, filter])}
+            onRemove={(indexToRemove) => setFilters(filters.filter((_, index) => index !== indexToRemove))}
+            note="Only games that match are counted."
+          />
+        </QueryControl>
+      </QueryCard>
+      {fpts.dialog}
+    </div>
   );
 };
 
