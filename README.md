@@ -8,7 +8,7 @@ There are currently three different types of functionalities that the YangBA sup
 2. The "Games" component returns a series of statlines that fit within a certain criteria, given by the user. For example, it can show all statlines of players in which they've scored more than 50 points, or all games from a specific player in which they had more than 10 threes.
 3. The "Rank" component ranks a series of players based on a certain criteria, given by the user. For example, if the user wanted to know the top 10 players based on free-throw efficiency or the worst 10 players in terms of points per game, they would choose this component.
 
-Additionally, there is a custom bonus stat called "OPI" (Offensive Performance Index) that was created to place a single value for a particular player's statline. Factors that contribute to OPI include points, efficiency, assists, turnovers, minutes played, and total points scored by the team. OPI values were normalized such that all values fall between 0 to 1.
+Every statline also has a fantasy point total, "FPTS", using ESPN's default points-league scoring: 2 × FGM − FGA + 3PM + 2 × AST + REB + 4 × (STL + BLK) − 2 × TOV + PTS − missed free throws. FPTS is computed from the box score at query time, so it can be used like any other stat in Stats, Games, and Rank queries.
 
 ## Backend + Frontend Development
 

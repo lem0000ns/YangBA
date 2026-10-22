@@ -24,6 +24,13 @@ connection = pymysql.connect(
 )
 cursor = connection.cursor()
 table = " FROM version2 v INNER JOIN games g ON v.gameID = g.gameID"
+
+#fantasy points, using ESPN's default points league scoring
+FPTS = "(2 * fgm - fga + `3pm` + 2 * ast + reb + 4 * (steals + blocks) - 2 * turnovers + points - (fta - ftm))"
+
+#maps a stat name to its SQL expression (fpts is derived from the box score, not stored)
+def statColumn(stat):
+    return FPTS if stat == "fpts" else stat
 s3_client = boto3.client('s3', 'us-west-1')
 nameFile = s3_client.get_object(Bucket="nba-players.bucket", Key="allNames.txt")
 names = nameFile['Body'].read().decode('utf-8')
@@ -84,7 +91,7 @@ class QueryComputer:
                 return tempQuery
 
             if t[0:index] != "3pct" and t[0:index] != "fgpct" and t[0:index] != "ftpct":
-                query += helper(t[0:index], first)
+                query += helper(statColumn(t[0:index]), first)
             else:
                 query += helper(f"v.{self.sToQ[t[0:index]]}m/v.{self.sToQ[t[0:index]]}a", first)
             first = False
@@ -114,7 +121,7 @@ class RankComputer(QueryComputer):
     
     def compute_Query(self):
         if self.stat != '3pct' and self.stat != 'fgpct' and self.stat != 'ftpct':
-            query = f"SELECT name, {self.agg}({self.stat})" + table
+            query = f"SELECT name, {self.agg}({statColumn(self.stat)})" + table
         else:
             query = f"SELECT name, {self.agg}({self.sToQ[self.stat]}m / {self.sToQ[self.stat]}a)" + table
 
@@ -126,7 +133,7 @@ class RankComputer(QueryComputer):
         if self.filters:
             query += super().compute_filterQuery(True, self.filters)
         if self.stat != "3pct" and self.stat != "fgpct" and self.stat != "ftpct":
-            query += f" ORDER BY {self.agg}({self.stat}) {self.order}"
+            query += f" ORDER BY {self.agg}({statColumn(self.stat)}) {self.order}"
         else:
             query += f" ORDER BY {self.agg}({self.sToQ[self.stat]}m/{self.sToQ[self.stat]}a) {self.order}"
         query += f" LIMIT {self.limit}"
@@ -138,7 +145,7 @@ class GameComputer(QueryComputer):
         super().__init__(agg, event)
 
     def compute_Query(self):
-        query = "SELECT v.name, v.playerID, g.gameID, g.stage, g.gameDate, v.team, v.season, v.points, v.min, v.fgm, v.fga, v.ftm, v.fta, v.3pm, v.3pa, v.reb, v.ast, v.steals, v.blocks, v.turnovers, v.OPI" + table
+        query = f"SELECT v.name, v.playerID, g.gameID, g.stage, g.gameDate, v.team, v.season, v.points, v.min, v.fgm, v.fga, v.ftm, v.fta, v.3pm, v.3pa, v.reb, v.ast, v.steals, v.blocks, v.turnovers, {FPTS} AS FPTS" + table
         if self.name:
             query += f" WHERE v.name=\"{self.name}\""
         
@@ -160,7 +167,7 @@ class StatComputer(QueryComputer):
         if self.stat == 'games':
             query = "SELECT COUNT(*)" + table;
         elif self.stat != '3pct' and self.stat != 'fgpct' and self.stat != 'ftpct':
-            query = f"SELECT {self.agg}({self.stat})" + table;
+            query = f"SELECT {self.agg}({statColumn(self.stat)})" + table;
         else:
             if self.agg == "avg":
                 query = f"SELECT sum({self.sToQ[self.stat]}m) / sum({self.sToQ[self.stat]}a)" + table;

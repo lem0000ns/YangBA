@@ -1,5 +1,5 @@
 import json, time
-from query_utilities import StatComputer, GameComputer, RankComputer, cursor, connection
+from query_utilities import StatComputer, GameComputer, RankComputer, cursor, connection, statColumn
 
 def compute_Percentile(name, stat, season, agg, filters):
     #different types of stat
@@ -8,14 +8,14 @@ def compute_Percentile(name, stat, season, agg, filters):
             convert = {'3pct': '3p', 'fgpct': 'fg', 'ftpct': 'ft'}
             temp1 = "sum(" + convert[stat] + "m)/sum(" + convert[stat] + "a)"
         else:
-            temp1 = f"{agg}({stat})"
+            temp1 = f"{agg}({statColumn(stat)})"
     else:
         temp1 = "COUNT(*)"
     
     #filters
     filterStats = ""
     if filters:
-        filterStats = ' and '.join(filters.split(','))
+        filterStats = ' and '.join(statColumn("fpts") + f[4:] if f.startswith("fpts") else f for f in filters.split(','))
     
     #accounting for seasons
     if season == None:

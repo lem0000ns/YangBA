@@ -198,3 +198,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Lambda deploy zips
+yba-backend/routeHandler.zip
+yba-backend/yba.zip
+yba.zip

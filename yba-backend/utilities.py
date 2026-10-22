@@ -1,4 +1,4 @@
-import boto3, json, threading, traceback, math, time
+import boto3, json, threading, traceback, time
 from datetime import datetime, timedelta
 from random import randint
 
@@ -20,7 +20,7 @@ class MySQL_Writer:
         self.table = table
         self.season = season
         if self.table == "version2":
-            self.columns = ["name", "playerID", "gameID", "team", "season", "points", "min", "fgm", "fga", "ftm", "fta", "3pm", "3pa", "reb", "ast", "steals", "blocks", "turnovers", "OPI"]
+            self.columns = ["name", "playerID", "gameID", "team", "season", "points", "min", "fgm", "fga", "ftm", "fta", "3pm", "3pa", "reb", "ast", "steals", "blocks", "turnovers"]
             self.key_template = "version2/playerStats%s.json"
         elif self.table == "games":
             self.columns = ["gameID", "stage", "gameDate", "home", "homePts", "away", "awayPts"]
@@ -42,7 +42,7 @@ class MySQL_Writer:
         allValues = []
         for game in data:
             values = [game.get(col, None) for col in self.columns]
-            if self.table == "version2" and values[18] != None:
+            if self.table == "version2":
                 values[0] = '"' + values[0] + '"'
                 values[3] = '"' + values[3] + '"'
                 allValues.append('(' + ', '.join(map(str, values)) + ')')
@@ -62,18 +62,12 @@ class MySQL_Writer:
             print(f"error transferring data to version2 with error: {e}")
         
     @test_time
-    def normalizeOPI(self):
+    def removeNonNBAPlayers(self):
         from dataDump import connection
         cursor = connection.cursor()
         if self.table == "version2":
             #gets rid of former nba players from database whose games are in different league
             cursor.execute(f"DELETE FROM version2 WHERE team=\"\" AND season={self.season}")
-
-            cursor.execute(f"SELECT MAX(OPI) FROM version2 WHERE season={self.season}")
-            max_OPI = cursor.fetchone()[0]
-            cursor.execute(f"SELECT MIN(OPI) FROM version2 WHERE season={self.season}")
-            min_OPI = cursor.fetchone()[0]
-            cursor.execute(f"UPDATE version2 SET OPI = ABS(ROUND((OPI - {min_OPI}) / ({max_OPI} - {min_OPI}), 5)) WHERE season={self.season}")
             connection.commit()
 
     def setTable(self, newTable):
@@ -89,28 +83,14 @@ class DataDumper:
     def setSeason(self, newSeason):
         self.season = newSeason
 
-    #calculating OPI using box score stats and scaling it relative to how many min they played and how many total pts team scored
-    def calculateOPI(self, playerStats, gameID):
+    #only keep stat lines from games recorded in the games table (FPTS is derived at query time)
+    def isRecordedGame(self, gameID):
         from dataDump import connection
         cursor = connection.cursor()
 
-        cursor.execute(f" SELECT home, homePts, away, awayPts FROM games WHERE gameID = {gameID}")
+        cursor.execute(f" SELECT home FROM games WHERE gameID = {gameID}")
         result = cursor.fetchone()
-        if (gameID == 10973 or gameID == 10978):
-            print(result)
-        if result is None or result[0] == "":
-            playerStats["OPI"] = None
-        else:
-            try:
-                if playerStats["team"] == result[0]:
-                    totalPts = result[1]
-                else:
-                    totalPts = result[3]
-                playerStats["OPI"] = (playerStats["points"] + 3 * playerStats["3pm"] - playerStats["3pa"] + playerStats["ftm"] - playerStats["fta"] + 2 * playerStats["fgm"] - playerStats["fga"] + 2 * playerStats["ast"] - playerStats["turnovers"])
-                minFactor = math.log10(playerStats["min"] + 10)
-                playerStats["OPI"] /= float(minFactor * totalPts)
-            except Exception as e:
-                print(f"Failed to calculate OPI with exception: {e}")
+        return result is not None and result[0] != ""
 
     @test_time
     #gets data in regular json format to be parsed into ndjson format by flattenDump using 2 threads
@@ -259,8 +239,8 @@ class PlayerDumper(DataDumper):
                         playerStats["steals"] = currPlayer["steals"]
                         playerStats["blocks"] = currPlayer["blocks"]
                         playerStats["turnovers"] = currPlayer["turnovers"]
-                        super().calculateOPI(playerStats, gameID)
-                        allStats.append(playerStats)
+                        if super().isRecordedGame(gameID):
+                            allStats.append(playerStats)
                         playerStats = {}
             super().dumpS3(allStats, f"version2/playerStats{self.season}.json")
                             

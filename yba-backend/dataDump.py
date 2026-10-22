@@ -52,11 +52,11 @@ def lambda_handler(event, context):
         pd.dumpData()
         
         #transfer data to MySQL, updating games and player data in version2 under most recent season
-        sqlWriter = MySQL_Writer("games", connection, season)
+        sqlWriter = MySQL_Writer("games", season)
         sqlWriter.transferData()
         sqlWriter.setTable("version2")
         sqlWriter.transferData()
-        sqlWriter.normalizeOPI()
+        sqlWriter.removeNonNBAPlayers()
         
         #writes player profile information to MySQL
         namesToSQL()
