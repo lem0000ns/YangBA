@@ -74,7 +74,7 @@ Browser (React + Vite)
 | `content/PlayerInfo.tsx` — profile | `players` row from Wikipedia scrape |
 | `constants.ts`, `utilities.tsx` — labels & API encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
 
-**Local dev** runs only the frontend (`npm run dev`); it still calls the **deployed** API unless you change `baseURL` in `ResultsPage.tsx` / `PlayerInfo.tsx`.
+**Local dev** runs the frontend (`npm run dev`). By default it calls the **deployed** API. To query **local routeHandler** against RDS after a backfill, set `VITE_API_BASE_URL=http://127.0.0.1:8765/` (see [Local API + backfill verify](#local-api--backfill-verify) below).
 
 **Season note:** UI season labels are the **ending year** of a season (e.g. `2017` = 2016–17). The API is called with `season = UI value − 1`.
 
@@ -88,12 +88,26 @@ Separate from the site API; runs on a schedule (daily ETL Lambda):
 
 ```
 dataDump.lambda_handler
-  → RapidAPI NBA (/seasons, /games, /players, …)     [RAPIDAPI_KEY]
-  → NameDumper / GameDumper / PlayerDumper (utilities.py)
+  → API-Sports NBA v2 (v2.nba.api-sports.io)          [API_SPORTS_KEY]
+  → SeasonIngestor (utilities.py): games + /players/statistics?game=
   → NDJSON on S3 (nba-players.bucket)
   → MySQL_Writer → INSERT … ON DUPLICATE KEY UPDATE → games, version2
-  → playerScraper.namesToSQL() → Wikipedia → players table
+  → sync_all_names → allNames.txt (S3 + frontend bundle)
+  → playerScraper.namesToSQL() → Wikipedia, API-Sports fallback → players
 ```
+
+Backfill loads API season start years **2023–2025** (2023-24 through 2025-26), **excluding the current API season**. Before load, migrations run `drop_opi.sql` and `prepare_backfill.sql` (truncate `games` / `version2`).
+
+```bash
+cd yba-backend
+export API_SPORTS_KEY=… SECRETS_MANAGER_CONTRASENA=…
+python dataDump.py              # full backfill + MySQL (parallel: one thread per season)
+python dataDump.py --force      # ignore S3 checkpoint, re-fetch all seasons
+python dataDump.py --sequential # single-threaded seasons (slower, easier on API rate limits)
+python dataDump.py --verify     # check S3 vs RDS vs API game coverage only
+```
+
+After a normal backfill, `verify_backfill` runs automatically and fails the job if any game or finished box score is missing from RDS.
 
 Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerImages/`), served via CloudFront for `PlayerAvatar`.
 
@@ -108,8 +122,10 @@ Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerI
 | `yba-frontend/` | React 18, TypeScript, Vite, react-router |
 | `yba-backend/routeHandler.py` | Query API Lambda handler |
 | `yba-backend/query_utilities.py` | SQL builders + name matching |
-| `yba-backend/dataDump.py` | Scheduled ETL entry |
-| `yba-backend/utilities.py` | S3 dump + MySQL load helpers |
+| `yba-backend/dataDump.py` | Scheduled ETL / backfill entry |
+| `yba-backend/api_sports_client.py` | API-Sports HTTP client |
+| `yba-backend/utilities.py` | Season ingest + MySQL load + allNames sync |
+| `scripts/local_api_server.py` | Local routeHandler for dev |
 | `yba-backend/playerScraper.py` | Wikipedia → `players` |
 | `yba-backend/imageDumper/` | Headshot scraper Lambda |
 | `scripts/yba-deploy.sh` | Git push + API Lambda + S3 + CloudFront |
@@ -125,6 +141,23 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Local API + backfill verify
+
+After RDS has current-season data:
+
+```bash
+# Terminal 1 — query Lambda locally (needs AWS creds for S3 allNames.txt + MySQL password)
+export SECRETS_MANAGER_CONTRASENA=…
+python scripts/local_api_server.py
+
+# Terminal 2 — frontend → local API
+cd yba-frontend
+echo 'VITE_API_BASE_URL=http://127.0.0.1:8765/' > .env.local
+npm run dev
+```
+
+Smoke test: **Stats** and **Games** for the **current season** (e.g. UI season **2027** = API `season=2026` if that is the active year). Expect non-empty JSON from `http://127.0.0.1:8765/stats?…` and `…/games?…`.
 
 ---
 
@@ -152,10 +185,10 @@ The script will:
 
 **Lambda environment (query API):** `SECRETS_MANAGER_CONTRASENA` — MySQL password.
 
-**Lambda environment (ETL only):** `SECRETS_MANAGER_CONTRASENA`, `RAPIDAPI_KEY`.
+**Lambda environment (ETL only):** `SECRETS_MANAGER_CONTRASENA`, `API_SPORTS_KEY`.
 
 ---
 
 ## Stack
 
-React · Vite · API Gateway · Lambda · MySQL (RDS) · S3 · CloudFront · Route 53 · RapidAPI NBA · Wikipedia (Beautiful Soup)
+React · Vite · API Gateway · Lambda · MySQL (RDS) · S3 · CloudFront · Route 53 · API-Sports NBA · Wikipedia (Beautiful Soup)

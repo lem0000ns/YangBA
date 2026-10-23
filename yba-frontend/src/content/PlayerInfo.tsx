@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiBaseUrl } from "../apiConfig.ts";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -38,7 +39,7 @@ const PlayerInfo = () => {
     setInfo(undefined);
     axios
       .get(
-        `https://vojed2b2fk.execute-api.us-west-1.amazonaws.com/dev/players?name=${name}`
+        `${apiBaseUrl}players?name=${name}`
       )
       .then((response) => {
         const playerData = response.data.player;

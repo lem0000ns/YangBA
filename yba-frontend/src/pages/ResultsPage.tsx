@@ -32,6 +32,7 @@ import {
   statShort,
 } from "../constants.ts";
 import { describeSeasons } from "./queryFields.tsx";
+import { apiBaseUrl } from "../apiConfig.ts";
 
 interface Props {
   path: string;
@@ -56,7 +57,7 @@ interface RankRow {
   value: number;
 }
 
-const baseURL = "https://vojed2b2fk.execute-api.us-west-1.amazonaws.com/dev/";
+const baseURL = apiBaseUrl;
 
 const fields = [
   "name",
