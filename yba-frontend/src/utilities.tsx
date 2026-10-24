@@ -6,6 +6,109 @@ import {
   statLabel,
 } from "./constants";
 
+/** Values needed to reopen a stats, games, or rankings form. */
+export interface QueryDraft {
+  name?: string;
+  stat?: string;
+  agg?: string;
+  seasons?: string[];
+  filters?: string[];
+  limit?: number;
+  order?: string;
+  team?: string;
+  stage?: string;
+}
+
+/** Saved stats, games, or rank response for one results URL. */
+export interface CachedResult {
+  result: unknown;
+  statInfo: string;
+  percentile: number | null;
+  resolvedName: string;
+}
+
+const RESULT_CACHE_PREFIX = "yba-result:";
+
+const omitPlaceholder = (value: string | undefined) => {
+  if (!value) return "";
+  if (value == "Select team (optional)" || value == "Select a stage (optional)") return "";
+  return value;
+};
+
+/** Builds a results URL whose query string contains only the fields that are set. */
+export function resultsPath(kind: string, query: QueryDraft) {
+  const params = new URLSearchParams();
+  const name = omitPlaceholder(query.name);
+  const stat = omitPlaceholder(query.stat);
+  const agg = stat == "games" ? "sum" : omitPlaceholder(query.agg);
+  const order = omitPlaceholder(query.order);
+  const team = omitPlaceholder(query.team);
+  const stage = omitPlaceholder(query.stage);
+  if (name) params.set("name", name);
+  if (query.seasons?.length) params.set("seasons", query.seasons.join(","));
+  if (query.filters?.length) params.set("filters", query.filters.join(","));
+  if (query.limit != null && query.limit != -1 && !Number.isNaN(query.limit)) {
+    params.set("limit", String(query.limit));
+  }
+  if (stat) params.set("stat", stat);
+  if (agg) params.set("agg", agg);
+  if (order) params.set("order", order);
+  if (team) params.set("team", team);
+  if (stage) params.set("stage", stage);
+  const search = params.toString();
+  return `/${kind}/results${search ? `?${search}` : ""}`;
+}
+
+/** Reads a results query back out of a URL search string. */
+export function queryFromSearch(params: URLSearchParams): QueryDraft {
+  const list = (key: string) => {
+    const value = params.get(key);
+    return value ? value.split(",").filter(Boolean) : [];
+  };
+  const limitRaw = params.get("limit");
+  const limit = limitRaw == null || limitRaw == "" ? -1 : Number(limitRaw);
+  return {
+    name: params.get("name") ?? "",
+    stat: params.get("stat") ?? "",
+    agg: params.get("agg") ?? "",
+    seasons: list("seasons"),
+    filters: list("filters"),
+    limit: Number.isNaN(limit) ? -1 : limit,
+    order: params.get("order") ?? "",
+    team: params.get("team") ?? "",
+    stage: params.get("stage") ?? "",
+  };
+}
+
+/** Returns a cached results payload for this results URL, if one was stored in this tab. */
+export function readResultCache(key: string): CachedResult | null {
+  try {
+    const raw = sessionStorage.getItem(RESULT_CACHE_PREFIX + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedResult;
+    if (parsed == null || typeof parsed != "object" || !("result" in parsed) || typeof parsed.statInfo != "string") {
+      return null;
+    }
+    return {
+      result: parsed.result,
+      statInfo: parsed.statInfo,
+      percentile: typeof parsed.percentile == "number" ? parsed.percentile : null,
+      resolvedName: parsed.resolvedName ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Stores a results payload in this tab so a later visit can skip the API. */
+export function writeResultCache(key: string, value: CachedResult) {
+  try {
+    sessionStorage.setItem(RESULT_CACHE_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // Storage can be full or disabled. The page still shows the response it just loaded.
+  }
+}
+
 /** Build query string parameters for the Lambda API from form state. */
 function computeURL(
   name: string,
@@ -25,7 +128,7 @@ function computeURL(
     isLimit = true;
   }
   if (stat != "") isLimit ? (url += "&stat=" + stat) : (url += "stat=" + stat);
-  if (name != "") url += "&name=" + name.toLowerCase();
+  if (name != "") url += "&name=" + encodeURIComponent(name);
   if (agg != "") {
     if (stat == "games") agg = "sum";
     url += "&agg=" + agg;

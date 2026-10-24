@@ -28,7 +28,6 @@ const NumberField = ({ value, onChange, presets = [], unit, min = 1, max = 500 }
           min={min}
           max={max}
           value={value == -1 ? "" : value}
-          placeholder="—"
           onChange={(e) => onChange(e.target.value == "" ? -1 : clamp(Number(e.target.value)))}
         />
         {unit && <span className="number-unit">{unit}</span>}

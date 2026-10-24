@@ -1,5 +1,13 @@
-import { Link, useParams } from "react-router-dom";
-import { getStatInfo, computeURL } from "../utilities.tsx";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  CachedResult,
+  computeURL,
+  getStatInfo,
+  queryFromSearch,
+  readResultCache,
+  resultsPath,
+  writeResultCache,
+} from "../utilities.tsx";
 import {
   ArrowLeft,
   Button,
@@ -148,126 +156,130 @@ const gameColumns = (maxFpts: number): Column<GameRow>[] => fields.map((field) =
   }
 });
 
-/** Loads and renders stats, games, or rank results from URL parameters. */
-const ResultsPage = ({ path }: Props) => {
-  const [result, setResult] = useState<any>();
-  const [statInfo, setStatInfo] = useState("");
-  const [percentile, setPercentile] = useState<number | null>(null);
-  const [resolvedName, setResolvedName] = useState("");
-  const routeParams = useParams();
-  const [error, setError] = useState("");
-  const name =
-    routeParams["name"] && routeParams["name"] != "na"
-      ? routeParams["name"]
-      : "";
-  const seasons =
-    routeParams["seasons"] && routeParams["seasons"] != "na"
-      ? routeParams["seasons"].split("-")
-      : [];
-  const filters =
-    routeParams["filters"] && routeParams["filters"] != "na"
-      ? routeParams["filters"].split("-")
-      : [];
-  const limit =
-    routeParams["limit"] && routeParams["limit"] != "na"
-      ? Number(routeParams["limit"])
-      : -1;
-  const stat =
-    routeParams["stat"] && routeParams["stat"] != "na"
-      ? routeParams["stat"]
-      : "";
-  let agg =
-    routeParams["agg"] && routeParams["agg"] != "na" ? routeParams["agg"] : "";
-  const order =
-    routeParams["order"] && routeParams["order"] != "na"
-      ? routeParams["order"]
-      : "";
-  const team =
-    routeParams["team"] && routeParams["team"] != "na"
-      ? routeParams["team"]
-      : "";
-  const stage =
-    routeParams["stage"] && routeParams["stage"] != "na"
-      ? routeParams["stage"]
-      : "";
+/** Shares one request when the page effect runs twice before the response arrives. */
+const inflightResults = new Map<string, Promise<CachedResult>>();
 
-  let url =
-    baseURL +
-    `${path}?` +
-    computeURL(name, stat, agg, seasons, filters, limit, order, team, stage);
+/** Copies a cached or freshly loaded payload into the page state. */
+const applyPayload = (
+  payload: CachedResult,
+  setResult: (value: any) => void,
+  setStatInfo: (value: string) => void,
+  setPercentile: (value: number | null) => void,
+  setResolvedName: (value: string) => void
+) => {
+  setResult(payload.result);
+  setStatInfo(payload.statInfo);
+  setPercentile(payload.percentile);
+  setResolvedName(payload.resolvedName);
+};
+
+/** Loads and renders stats, games, or rank results from the URL query string. */
+const ResultsPage = ({ path }: Props) => {
+  const [searchParams] = useSearchParams();
+  const draft = queryFromSearch(searchParams);
+  const name = draft.name ?? "";
+  const stat = draft.stat ?? "";
+  const order = draft.order ?? "";
+  const team = draft.team ?? "";
+  const stage = draft.stage ?? "";
+  const limit = draft.limit ?? -1;
+  const agg = stat == "games" ? "sum" : draft.agg ?? "";
+  const seasonsList = draft.seasons ?? [];
+  const filtersList = draft.filters ?? [];
+  const cacheKey = resultsPath(path, { ...draft, agg, seasons: seasonsList, filters: filtersList });
+  const cached = readResultCache(cacheKey);
+  const [result, setResult] = useState<any>(cached?.result);
+  const [statInfo, setStatInfo] = useState(cached?.statInfo ?? "");
+  const [percentile, setPercentile] = useState<number | null>(cached?.percentile ?? null);
+  const [resolvedName, setResolvedName] = useState(cached?.resolvedName ?? "");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (path == "games") {
-      axios
-        .get(url)
-        .then((response) => {
-          setResult(
-            (response.data.games ?? []).map((row: GameRow) => ({
+    const stored = readResultCache(cacheKey);
+    if (stored) {
+      applyPayload(stored, setResult, setStatInfo, setPercentile, setResolvedName);
+      setError("");
+      return;
+    }
+
+    let cancelled = false;
+    const requestUrl =
+      baseURL +
+      `${path}?` +
+      computeURL(name, stat, agg, seasonsList, filtersList, limit, order, team, stage);
+
+    setResult(undefined);
+    setStatInfo("");
+    setPercentile(null);
+    setResolvedName("");
+    setError("");
+
+    let pending = inflightResults.get(cacheKey);
+    if (!pending) {
+      pending = axios.get(requestUrl).then((response) => {
+        if (path == "games") {
+          return {
+            result: (response.data.games ?? []).map((row: GameRow) => ({
               ...row,
               FPTS: row.FPTS != null ? Number(row.FPTS) : computeFPTS(row),
-            }))
-          );
-          setStatInfo(
-            getStatInfo(name, "", "", seasons, filters, "", limit, "", "")
-          );
-        })
-        .catch((error) => {
-          console.log("there was an error: " + error);
-          setError("There was an error");
-        });
-    }
-
-    if (path == "stats") {
-      if (stat == "games") agg = "sum";
-      setStatInfo(
-        getStatInfo(name, stat, agg, seasons, filters, "", -1, "", "")
-      );
-      axios
-        .get(url)
-        .then((response) => {
+            })),
+            statInfo: getStatInfo(name, "", "", seasonsList, filtersList, "", limit, "", stage),
+            percentile: null,
+            resolvedName: "",
+          };
+        }
+        if (path == "stats") {
           const value = response.data[agg + "_" + stat];
           if (typeof value != "number") throw new Error("missing stat in response");
-          setResult(value);
-          setResolvedName(response.data.name ?? name);
-          setPercentile(response.data.percentile ? response.data.percentile : null);
-        })
-        .catch((error) => {
-          console.error("there was an error: " + error);
-          setError("There was an error");
-        });
+          return {
+            result: value,
+            statInfo: getStatInfo(name, stat, agg, seasonsList, filtersList, "", -1, "", stage),
+            percentile: response.data.percentile ? response.data.percentile : null,
+            resolvedName: response.data.name ?? name,
+          };
+        }
+        return {
+          result: response.data.result.map((item: any, index: number) => ({
+            rank: index + 1,
+            name: item.name,
+            value: item[agg + "_" + stat],
+          })),
+          statInfo: getStatInfo("", stat, agg, seasonsList, filtersList, team, limit, order, stage),
+          percentile: null,
+          resolvedName: "",
+        };
+      });
+      inflightResults.set(cacheKey, pending);
+      pending.finally(() => inflightResults.delete(cacheKey));
     }
 
-    if (path == "rank") {
-      setStatInfo(
-        getStatInfo("", stat, agg, seasons, filters, team, limit, order, stage)
-      );
-      axios
-        .get(url)
-        .then((response) => {
-          setResult(
-            response.data.result.map((item: any, index: number) => ({
-              rank: index + 1,
-              name: item.name,
-              value: item[agg + "_" + stat],
-            }))
-          );
-        })
-        .catch((error) => {
-          console.error("there was an error: " + error);
-          setError("There was an error");
-        });
-    }
-  }, [baseURL]);
+    pending
+      .then((payload) => {
+        if (cancelled) return;
+        applyPayload(payload, setResult, setStatInfo, setPercentile, setResolvedName);
+        writeResultCache(cacheKey, payload);
+      })
+      .catch((requestError) => {
+        console.error("there was an error: " + requestError);
+        if (!cancelled) setError("There was an error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // The cache key is the canonical results URL, so it changes exactly when the query changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey]);
 
   const formPath = `/${path}`;
   const eyebrow = path == "stats" ? "Stats result" : path == "games" ? "Game log" : "Leaderboard";
 
   const contextChips = (
     <div className="context-chips">
-      {seasons.length > 0 && <span className="chip is-static">{describeSeasons(seasons)}</span>}
+      {seasonsList.length > 0 && <span className="chip is-static">{describeSeasons(seasonsList)}</span>}
       {team && <span className="chip is-static">{TEAMS[team] ?? team}</span>}
       {stage && <span className="chip is-static">{stage}</span>}
-      {filters.map((filter, index) => (
+      {filtersList.map((filter, index) => (
         <FilterPill key={`${filter}-${index}`} filter={filter} perGame={path == "rank"} />
       ))}
     </div>
@@ -291,7 +303,7 @@ const ResultsPage = ({ path }: Props) => {
           tone="error"
           title="Something went wrong"
           message="We couldn't load these results. Try again or change the query."
-          action={<Button to={formPath} arrow>Back</Button>}
+          action={<Button to={formPath} state={{ draft }} arrow>Back</Button>}
         />
       </div>
     );
@@ -314,7 +326,7 @@ const ResultsPage = ({ path }: Props) => {
           <EmptyState
             title="No games found"
             message="Try fewer filters or more seasons."
-            action={<Button to={formPath} arrow>Edit search</Button>}
+            action={<Button to={formPath} state={{ draft }} arrow>Edit search</Button>}
           />
         </div>
       );
@@ -324,7 +336,11 @@ const ResultsPage = ({ path }: Props) => {
     const fpts = games.map((g) => g.FPTS);
     return (
       <div className="page page-results">
-        {header()}
+        {header(
+          <Button to={formPath} state={{ draft }} variant="secondary" size="sm">
+            Edit search
+          </Button>
+        )}
         <div className="stat-row">
           <StatCard label="Games" value={games.length} />
           <StatCard label="Points per game" value={average(points)} format={(v) => v.toFixed(1)} delay={60}>
@@ -355,14 +371,19 @@ const ResultsPage = ({ path }: Props) => {
     const value = result as number;
     const displayName = resolvedName || name;
     const pctValue = percentile != null ? percentile * 100 : null;
-    const gameLog = `/games/results/${encodeURIComponent(displayName)}/${routeParams["seasons"] ?? "na"}/${routeParams["filters"] ?? "na"}/25`;
+    const gameLog = resultsPath("games", {
+      name: displayName,
+      seasons: seasonsList,
+      filters: filtersList,
+      limit: 25,
+    });
 
     return (
       <div className="page page-results">
         {header()}
         <div className={`stats-result ${displayName ? "" : "is-league"}`}>
           {displayName ? (
-            <PlayerCard name={displayName} meta={seasons.length ? describeSeasons(seasons) : "All seasons"}>
+            <PlayerCard name={displayName} meta={seasonsList.length ? describeSeasons(seasonsList) : "All seasons"}>
               <p className="player-card-note">{describeStat(stat, agg)}</p>
             </PlayerCard>
           ) : (
@@ -373,7 +394,7 @@ const ResultsPage = ({ path }: Props) => {
               <div className="player-card-body">
                 <div className="eyebrow">League-wide</div>
                 <h2 className="player-card-name">Every player</h2>
-                <p className="player-card-note">{seasons.length ? describeSeasons(seasons) : "All seasons"}</p>
+                <p className="player-card-note">{seasonsList.length ? describeSeasons(seasonsList) : "All seasons"}</p>
               </div>
             </div>
           )}
@@ -406,7 +427,7 @@ const ResultsPage = ({ path }: Props) => {
           </div>
         </div>
         <div className="results-actions">
-          <Button to={formPath} variant="secondary">Edit query</Button>
+          <Button to={formPath} state={{ draft }} variant="secondary">Edit query</Button>
           {displayName && (
             <Button to={gameLog} variant="ghost" arrow>
               Game log
@@ -426,7 +447,7 @@ const ResultsPage = ({ path }: Props) => {
           <EmptyState
             title="No players found"
             message="Try fewer filters or a different team."
-            action={<Button to={formPath} arrow>Edit ranking</Button>}
+            action={<Button to={formPath} state={{ draft }} arrow>Edit ranking</Button>}
           />
         </div>
       );
@@ -440,14 +461,19 @@ const ResultsPage = ({ path }: Props) => {
     return (
       <div className="page page-results">
         {header(
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<SwapIcon />}
-            onClick={() => setResult(result.slice().reverse())}
-          >
-            Reverse rows
-          </Button>
+          <>
+            <Button to={formPath} state={{ draft }} variant="secondary" size="sm">
+              Edit ranking
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<SwapIcon />}
+              onClick={() => setResult(result.slice().reverse())}
+            >
+              Reverse rows
+            </Button>
+          </>
         )}
 
         {podium.length >= 3 && (

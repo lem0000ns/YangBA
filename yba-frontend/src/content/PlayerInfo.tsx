@@ -1,5 +1,6 @@
 import axios from "axios";
 import { apiBaseUrl } from "../apiConfig.ts";
+import { resultsPath } from "../utilities.tsx";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -71,7 +72,9 @@ const PlayerInfo = () => {
     );
   }
 
-  const encoded = encodeURIComponent(info.name);
+  const pointsPerGame = resultsPath("stats", { name: info.name, stat: "points", agg: "avg" });
+  const careerHigh = resultsPath("stats", { name: info.name, stat: "points", agg: "max" });
+  const gameLog = resultsPath("games", { name: info.name, limit: 25 });
   const details = facts
     .map((fact) => ({ ...fact, lines: fact.parse(info[fact.key]) }))
     .filter((fact) => fact.lines.length > 0);
@@ -91,13 +94,13 @@ const PlayerInfo = () => {
           <h1 className="profile-name">{info.name}</h1>
           {info.intro && <p className="profile-intro">{info.intro}</p>}
           <div className="profile-actions">
-            <Button to={`/stats/results/${encoded}/na/na/na/points/avg/na/na/na`} size="sm" arrow>
+            <Button to={pointsPerGame} size="sm" arrow>
               Career points per game
             </Button>
-            <Button to={`/stats/results/${encoded}/na/na/na/points/max/na/na/na`} size="sm" variant="secondary">
+            <Button to={careerHigh} size="sm" variant="secondary">
               Career high
             </Button>
-            <Button to={`/games/results/${encoded}/na/na/25`} size="sm" variant="ghost">
+            <Button to={gameLog} size="sm" variant="ghost">
               Game log
             </Button>
           </div>

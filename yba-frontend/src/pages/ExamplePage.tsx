@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, Button, FilterPill, Modal, SectionHeader } from "../components/All";
 import { TEAMS, aggLabel, statLabel } from "../constants";
 import { describeSeasons } from "./queryFields";
+import { resultsPath } from "../utilities";
 
 type Path = "stats" | "games" | "rank";
 
@@ -25,17 +26,8 @@ const pathLabels: Record<Path, string> = { stats: "Stats", games: "Games", rank:
 /** Prevents line breaks between en-dash and trailing digits in season text. */
 const keepSeasonsTogether = (text: string) => text.replace(/–(\d)/g, "–\u2060$1");
 
-/** Joins route segment values or returns "na" when empty. */
-const join = (values: string[] | undefined, sep = "-") => (values?.length ? values.join(sep) : "na");
-
 /** Builds the results path for a sample example query. */
-const resultsURL = (e: Example) => {
-  const seasons = join(e.seasons);
-  const filters = join(e.filters);
-  if (e.path == "stats") return `/stats/results/${e.name ?? "na"}/${seasons}/${filters}/na/${e.stat}/${e.agg}/na/na/na`;
-  if (e.path == "games") return `/games/results/${e.name ?? "na"}/${seasons}/${filters}/${e.limit}`;
-  return `/rank/results/na/${seasons}/${filters}/${e.limit}/${e.stat}/${e.agg}/${e.order}/${e.team ?? "na"}/${e.stage ?? "na"}`;
-};
+const resultsURL = (e: Example) => resultsPath(e.path, e);
 
 /** Derives label/value rows describing an example's parameters. */
 const setupRows = (e: Example) => {
@@ -47,7 +39,7 @@ const setupRows = (e: Example) => {
   if (e.agg) rows.push({ label: "Metric", value: aggLabel(e.agg) });
   if (e.path == "rank") rows.push({ label: "Team", value: e.team ? TEAMS[e.team] : "Any team" });
   rows.push({ label: "Season", value: e.seasons?.length ? describeSeasons(e.seasons) : "All seasons" });
-  if (e.path == "rank") rows.push({ label: "Stage", value: e.stage ?? "All" });
+  rows.push({ label: "Stage", value: e.stage ?? "All" });
   return rows;
 };
 
@@ -61,7 +53,7 @@ const simpleExamples: Example[] = [
 
 const specificExamples: Example[] = [
   { id: "three-pt", sentence: "Best three-point shooters from 2016–17 to 2020–21, at least 5 attempts per game", path: "rank", limit: 10, stat: "3pct", agg: "avg", order: "Most", seasons: ["2017", "2018", "2019", "2020", "2021"], filters: ["3pa>5"] },
-  { id: "forty-thirteen", sentence: "Regular season games with more than 40 points and 13 assists", path: "games", limit: 15, filters: ["stage=2", "points>40", "ast>13"] },
+  { id: "forty-thirteen", sentence: "Regular season games with more than 40 points and 13 assists", path: "games", limit: 15, stage: "Regular Season", filters: ["points>40", "ast>13"] },
   { id: "tatum-turnovers", sentence: "Jayson Tatum's turnovers per game when shooting below 40% in 2022–23", path: "stats", name: "Jayson Tatum", stat: "turnovers", agg: "avg", seasons: ["2023"], filters: ["fgpct<0.4"] },
   { id: "jazz-rebounds", sentence: "Jazz players with the highest single-game rebounds, more than 50 games played", path: "rank", limit: 13, stat: "reb", agg: "max", order: "Most", team: "UTA", filters: ["games>50"] },
   { id: "klay-threes", sentence: "Fewest threes Klay Thompson made in a game with more than 35 points", path: "stats", name: "Klay Thompson", stat: "3pm", agg: "min", filters: ["points>35"] },

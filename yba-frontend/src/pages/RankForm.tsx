@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   FilterBuilder,
   NumberField,
@@ -7,9 +8,9 @@ import {
   SectionHeader,
   SegmentedControl,
 } from "../components/All";
-import { AGG_OPTIONS, RANK_FILTER_STATS, STAGES, TEAMS, statLabel } from "../constants";
-import { getStatInfo } from "../utilities";
-import { SeasonPicker, StatPicker, TeamPicker, describeSeasons, useFptsInfo } from "./queryFields";
+import { AGG_OPTIONS, DEFAULT_STAGE, RANK_FILTER_STATS, TEAMS, statLabel } from "../constants";
+import { QueryDraft, getStatInfo } from "../utilities";
+import { SeasonPicker, StagePicker, StatPicker, TeamPicker, describeSeasons, useFptsInfo } from "./queryFields";
 
 interface Props {
   onSubmit: (
@@ -26,14 +27,15 @@ interface Props {
 
 /** Form for building player leaderboard queries. */
 const RankForm = ({ onSubmit }: Props) => {
-  const [aggValue, setAggValue] = useState("");
-  const [statValue, setStatValue] = useState("");
-  const [order, setOrder] = useState("Most");
-  const [limit, setLimit] = useState(-1);
-  const [team, setTeam] = useState("");
-  const [seasons, setSeasons] = useState<string[]>([]);
-  const [stage, setStage] = useState("");
-  const [filters, setFilters] = useState<string[]>([]);
+  const draft = (useLocation().state as { draft?: QueryDraft } | null)?.draft;
+  const [aggValue, setAggValue] = useState(draft?.agg ?? "");
+  const [statValue, setStatValue] = useState(draft?.stat ?? "");
+  const [order, setOrder] = useState(draft?.order || "Most");
+  const [limit, setLimit] = useState(draft?.limit ?? -1);
+  const [team, setTeam] = useState(draft?.team ?? "");
+  const [seasons, setSeasons] = useState<string[]>(draft?.seasons ?? []);
+  const [stage, setStage] = useState(draft?.stage ?? DEFAULT_STAGE);
+  const [filters, setFilters] = useState<string[]>(draft?.filters ?? []);
   const [error, setError] = useState("");
   const [formKey, setFormKey] = useState(0);
   const fpts = useFptsInfo();
@@ -41,9 +43,15 @@ const RankForm = ({ onSubmit }: Props) => {
   /** Validates required rank fields and submits the leaderboard query. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    aggValue == "" || statValue == "" || order == "" || limit == -1
-      ? setError("'Number of players', 'Agg', 'Stat', and 'Order' are required fields")
-      : onSubmit(aggValue, statValue, order, limit, team, seasons, stage, filters);
+    const missing = [
+      limit == -1 ? "number of players" : "",
+      !statValue ? "stat" : "",
+      !aggValue ? "metric" : "",
+    ].filter(Boolean);
+    if (missing.length == 0) onSubmit(aggValue, statValue, order, limit, team, seasons, stage, filters);
+    else if (missing.length == 1) setError(`Choose a ${missing[0]}.`);
+    else if (missing.length == 2) setError(`Choose a ${missing[0]} and a ${missing[1]}.`);
+    else setError("Choose a number of players, a stat, and a metric.");
   };
 
   /** Clears all rank form fields and validation errors. */
@@ -54,7 +62,7 @@ const RankForm = ({ onSubmit }: Props) => {
     setLimit(-1);
     setTeam("");
     setSeasons([]);
-    setStage("");
+    setStage(DEFAULT_STAGE);
     setFilters([]);
     setError("");
     setFormKey((k) => k + 1);
@@ -158,13 +166,7 @@ const RankForm = ({ onSubmit }: Props) => {
         </QueryControl>
 
         <QueryControl label="Stage">
-          <SegmentedControl
-            size="sm"
-            ariaLabel="Stage"
-            value={stage}
-            onChange={setStage}
-            options={[{ value: "", label: "All" }, ...STAGES.map((s) => ({ value: s, label: s == "Regular Season" ? "Regular" : s }))]}
-          />
+          <StagePicker value={stage} onChange={setStage} />
         </QueryControl>
 
         <QueryControl label="Filters" span={2}>

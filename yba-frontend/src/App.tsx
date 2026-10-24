@@ -10,13 +10,14 @@ import {
 } from "./pages/All.tsx";
 import { PlayerInfo } from "./content/All";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { resultsPath } from "./utilities";
 
 /** Root app shell with routes and query submit handlers. */
 function App() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  useEffect(() => window.scrollTo(0, 0), [pathname, search]);
 
   /** Navigates to the stats results URL from form values. */
   const handleStatsSubmit = (
@@ -24,14 +25,10 @@ function App() {
     stat: string,
     agg: string,
     seasons: string[],
-    filters: string[]
+    filters: string[],
+    stage: string
   ) => {
-    if (name == "") name = "na";
-    const seasons_string = seasons.length == 0 ? "na" : seasons.join("-");
-    const filters_string = filters.length == 0 ? "na" : filters.join("-");
-    navigate(
-      `/stats/results/${name}/${seasons_string}/${filters_string}/na/${stat}/${agg}/na/na/na`
-    );
+    navigate(resultsPath("stats", { name, stat, agg, seasons, filters, stage }));
   };
 
   /** Navigates to the games results URL from form values. */
@@ -39,14 +36,10 @@ function App() {
     name: string,
     seasons: string[],
     filters: string[],
-    limit: number
+    limit: number,
+    stage: string
   ) => {
-    if (name == "") name = "na";
-    const seasons_string = seasons.length == 0 ? "na" : seasons.join("-");
-    const filters_string = filters.length == 0 ? "na" : filters.join("-");
-    navigate(
-      `/games/results/${name}/${seasons_string}/${filters_string}/${limit}`
-    );
+    navigate(resultsPath("games", { name, seasons, filters, limit, stage }));
   };
 
   /** Navigates to the rank results URL from form values. */
@@ -60,13 +53,7 @@ function App() {
     stage: string,
     filters: string[]
   ) => {
-    const seasons_string = seasons.length == 0 ? "na" : seasons.join("-");
-    const filters_string = filters.length == 0 ? "na" : filters.join("-");
-    if (team == "") team = "na";
-    if (stage == "") stage = "na";
-    navigate(
-      `/rank/results/na/${seasons_string}/${filters_string}/${limit}/${stat}/${agg}/${order}/${team}/${stage}`
-    );
+    navigate(resultsPath("rank", { agg, stat, order, limit, team, seasons, stage, filters }));
   };
 
   return (
@@ -75,22 +62,13 @@ function App() {
       <div className="app">
         <Navigation />
         <main className="content-container">
-          <Routes key={pathname}>
+          <Routes key={`${pathname}${search}`}>
             <Route path="/" element={<HomePage />} />
             <Route path="/examples" element={<ExamplePage />} />
 
-            <Route
-              path="/stats/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-              element={<ResultsPage path="stats" />}
-            />
-            <Route
-              path="/games/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-              element={<ResultsPage path="games" />}
-            />
-            <Route
-              path="/rank/results/:name?/:seasons?/:filters?/:limit?/:stat?/:agg?/:order?/:team?/:stage?"
-              element={<ResultsPage path="rank" />}
-            />
+            <Route path="/stats/results" element={<ResultsPage path="stats" />} />
+            <Route path="/games/results" element={<ResultsPage path="games" />} />
+            <Route path="/rank/results" element={<ResultsPage path="rank" />} />
             <Route
               path="/stats"
               element={<StatsForm onSubmit={handleStatsSubmit} />}

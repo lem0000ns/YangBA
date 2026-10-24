@@ -6,6 +6,7 @@ interface Props {
   possibleValues: string[];
   onChange: (value: string) => void;
   onSubmitEmpty?: () => void;
+  initialValue?: string;
   placeholder?: string;
   variant?: "field" | "search";
   autoFocus?: boolean;
@@ -32,16 +33,17 @@ const Autocomplete = ({
   possibleValues,
   onChange,
   onSubmitEmpty,
+  initialValue = "",
   placeholder = "Search for a player…",
   variant = "field",
   autoFocus,
   inputRef,
 }: Props) => {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialValue);
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef("");
+  const selectedRef = useRef(initialValue);
   const listId = useId();
 
   const suggestions = useMemo(() => {

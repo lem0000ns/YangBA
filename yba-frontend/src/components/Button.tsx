@@ -8,6 +8,7 @@ interface Props {
   size?: "sm" | "md" | "lg";
   type?: "button" | "submit" | "reset";
   to?: string;
+  state?: unknown;
   arrow?: boolean;
   icon?: ReactNode;
   disabled?: boolean;
@@ -22,6 +23,7 @@ const Button = ({
   size = "md",
   type = "button",
   to,
+  state,
   arrow = false,
   icon,
   disabled,
@@ -39,7 +41,7 @@ const Button = ({
 
   if (to) {
     return (
-      <Link to={to} className={classes} onClick={onClick}>
+      <Link to={to} state={state} className={classes} onClick={onClick}>
         {content}
       </Link>
     );

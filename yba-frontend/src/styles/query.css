@@ -416,6 +416,13 @@
 
 /* Filters */
 
+.filter-builder {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--cream-2);
+}
+
 .filter-builder-row {
   display: flex;
   flex-wrap: wrap;

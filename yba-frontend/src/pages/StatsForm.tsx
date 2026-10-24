@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Autocomplete,
   FilterBuilder,
@@ -7,9 +8,9 @@ import {
   SectionHeader,
   SegmentedControl,
 } from "../components/All";
-import { AGG_OPTIONS, GAME_FILTER_STATS, PCT_STATS, statLabel } from "../constants";
-import { getStatInfo } from "../utilities";
-import { SeasonPicker, StatPicker, allNames, describeSeasons, useFptsInfo } from "./queryFields";
+import { AGG_OPTIONS, DEFAULT_STAGE, GAME_FILTER_STATS, PCT_STATS, statLabel } from "../constants";
+import { QueryDraft, getStatInfo } from "../utilities";
+import { SeasonPicker, StagePicker, StatPicker, allNames, describeSeasons, useFptsInfo } from "./queryFields";
 
 interface Props {
   onSubmit: (
@@ -17,17 +18,20 @@ interface Props {
     stat: string,
     agg: string,
     seasons: string[],
-    filters: string[]
+    filters: string[],
+    stage: string
   ) => void;
 }
 
 /** Form for building and submitting a single-stat query. */
 const StatsForm = ({ onSubmit }: Props) => {
-  const [nameValue, setNameValue] = useState("");
-  const [statValue, setStatValue] = useState("");
-  const [aggValue, setAggValue] = useState("");
-  const [seasons, setSeasons] = useState<string[]>([]);
-  const [filters, setFilters] = useState<string[]>([]);
+  const draft = (useLocation().state as { draft?: QueryDraft } | null)?.draft;
+  const [nameValue, setNameValue] = useState(draft?.name ?? "");
+  const [statValue, setStatValue] = useState(draft?.stat ?? "");
+  const [aggValue, setAggValue] = useState(draft?.agg ?? "");
+  const [seasons, setSeasons] = useState<string[]>(draft?.seasons ?? []);
+  const [stage, setStage] = useState(draft?.stage ?? DEFAULT_STAGE);
+  const [filters, setFilters] = useState<string[]>(draft?.filters ?? []);
   const [error, setError] = useState("");
   const [formKey, setFormKey] = useState(0);
   const fpts = useFptsInfo();
@@ -51,9 +55,13 @@ const StatsForm = ({ onSubmit }: Props) => {
   /** Validates required fields and calls onSubmit with form state. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    statValue == "" || aggValue == ""
-      ? setError("'Stat' and 'Agg' are required fields")
-      : onSubmit(nameValue, statValue, aggValue, seasons, filters);
+    const missing = [
+      !statValue ? "stat" : "",
+      !aggValue ? "metric" : "",
+    ].filter(Boolean);
+    if (missing.length == 2) setError("Choose a stat and a metric.");
+    else if (missing.length == 1) setError(`Choose a ${missing[0]}.`);
+    else onSubmit(nameValue, statValue, aggValue, seasons, filters, stage);
   };
 
   /** Clears all stats form fields and validation errors. */
@@ -62,6 +70,7 @@ const StatsForm = ({ onSubmit }: Props) => {
     setStatValue("");
     setAggValue("");
     setSeasons([]);
+    setStage(DEFAULT_STAGE);
     setFilters([]);
     setError("");
     setFormKey((k) => k + 1);
@@ -69,7 +78,7 @@ const StatsForm = ({ onSubmit }: Props) => {
 
   const ready = statValue != "" && aggValue != "";
   const preview = ready
-    ? getStatInfo(nameValue, statValue, aggValue, seasons, filters, "", -1, "", "")
+    ? getStatInfo(nameValue, statValue, aggValue, seasons, filters, "", -1, "", stage)
     : "Choose a stat and a metric.";
 
   return (
@@ -92,7 +101,12 @@ const StatsForm = ({ onSubmit }: Props) => {
         error={error}
       >
         <QueryControl label="Player" span={2}>
-          <Autocomplete possibleValues={allNames} onChange={(value) => setNameValue(value)} placeholder="All players" />
+          <Autocomplete
+            possibleValues={allNames}
+            initialValue={nameValue}
+            onChange={(value) => setNameValue(value)}
+            placeholder="All players"
+          />
         </QueryControl>
 
         <QueryControl
@@ -117,6 +131,10 @@ const StatsForm = ({ onSubmit }: Props) => {
 
         <QueryControl label="Season" value={describeSeasons(seasons)} placeholder="All seasons">
           <SeasonPicker value={seasons} onChange={setSeasons} />
+        </QueryControl>
+
+        <QueryControl label="Stage" span={2}>
+          <StagePicker value={stage} onChange={setStage} />
         </QueryControl>
 
         <QueryControl label="Metric" required span={2} invalid={!!error && !aggValue}>

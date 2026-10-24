@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { InfoIcon, FptsInfo, PillGroup } from "../components/All";
-import { QUERY_STATS, SEASONS, STAT_META, TEAMS, seasonLabel } from "../constants";
+import { InfoIcon, FptsInfo, PillGroup, SegmentedControl } from "../components/All";
+import { QUERY_STATS, SEASONS, STAGES, STAT_META, TEAMS, seasonLabel } from "../constants";
 import namesList from "./allNames.txt?raw";
 
 export const allNames = namesList.split("\n").map((n) => n.trim()).filter(Boolean);
@@ -93,6 +93,29 @@ interface TeamPickerProps {
   value: string;
   onChange: (team: string) => void;
 }
+
+/** Preseason, regular season, and playoffs, with an option for every stage. */
+export const StagePicker = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (stage: string) => void;
+}) => (
+  <SegmentedControl
+    size="sm"
+    ariaLabel="Stage"
+    value={value}
+    onChange={onChange}
+    options={[
+      { value: "", label: "All" },
+      ...STAGES.map((stage) => ({
+        value: stage,
+        label: stage == "Regular Season" ? "Regular" : stage,
+      })),
+    ]}
+  />
+);
 
 /** Single-select grid of NBA team abbreviation pills. */
 export const TeamPicker = ({ value, onChange }: TeamPickerProps) => (

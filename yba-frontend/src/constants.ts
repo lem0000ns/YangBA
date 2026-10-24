@@ -49,7 +49,7 @@ export const QUERY_STATS = [
 ];
 
 const FILTER_BASE = QUERY_STATS.filter((s) => s != "games");
-export const GAME_FILTER_STATS = [...FILTER_BASE, "stage"];
+export const GAME_FILTER_STATS = [...FILTER_BASE];
 export const RANK_FILTER_STATS = [...FILTER_BASE, "games"];
 
 export const PCT_STATS = ["3pct", "fgpct", "ftpct"];
@@ -72,6 +72,7 @@ export const seasonLabel = (season: string) => {
 };
 
 export const STAGES = ["Preseason", "Regular Season", "Playoffs"];
+export const DEFAULT_STAGE = "Regular Season";
 
 export const STAGE_LABELS: Record<string, string> = {
   "1": "Pre",

@@ -8,6 +8,7 @@ import {
   TrendUp,
 } from "../components/All";
 import { EspnCredit, FPTS_SCORING } from "../components/FptsInfo";
+import { resultsPath } from "../utilities";
 import statsImage from "../content/images/curry_giannis.png";
 import gamesImage from "../content/images/dame_gw.jpg";
 import rankImage from "../content/images/lebron_mj.png";
@@ -45,8 +46,19 @@ const paths = [
   },
 ];
 
-const specimenURL = "/stats/results/Stephen Curry/2017/na/na/points/avg/na/na/na";
-const fptsLeadersURL = "/rank/results/na/na/games>50/10/fpts/avg/Most/na/na";
+const specimenURL = resultsPath("stats", {
+  name: "Stephen Curry",
+  seasons: ["2017"],
+  stat: "points",
+  agg: "avg",
+});
+const fptsLeadersURL = resultsPath("rank", {
+  filters: ["games>50"],
+  limit: 10,
+  stat: "fpts",
+  agg: "avg",
+  order: "Most",
+});
 
 /** Marketing landing page with tool paths and FPTS overview. */
 const HomePage = () => {
