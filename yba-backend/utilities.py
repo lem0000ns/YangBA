@@ -63,6 +63,41 @@ class MySQL_Writer:
         else:
             raise ValueError(f"Unknown MySQL table: {table}")
         self.columns_placeholder = ", ".join(self._sql_col(c) for c in self.columns)
+        if self.table == "version2":
+            self._string_cols = {"name", "team"}
+            self._required_cols = {"name", "playerID", "gameID", "team", "season"}
+        else:
+            self._string_cols = {"gameDate", "home", "away"}
+            self._required_cols = {"gameID", "stage", "home", "homePts", "away", "awayPts"}
+
+    def _sql_literal(self, connection, column: str, value):
+        """Render one cell. Missing counting stats become 0; strings are escaped."""
+        if column not in self._string_cols:
+            if isinstance(value, bool):
+                return "1" if value else "0"
+            if value is None or value == "":
+                return "0"
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return "0"
+            if number.is_integer():
+                return str(int(number))
+            return str(number)
+        if value is None:
+            return "NULL"
+        return connection.escape(str(value))
+
+    def _row_tuple(self, connection, row: dict) -> str | None:
+        if any(row.get(col) in (None, "") for col in self._required_cols):
+            return None
+        if self.table == "games" and row.get("homePts") is None:
+            return None
+        values = [
+            self._sql_literal(connection, col, row.get(col))
+            for col in self.columns
+        ]
+        return "(" + ", ".join(values) + ")"
 
     @test_time
     def transferData(self):
@@ -77,31 +112,31 @@ class MySQL_Writer:
             print(f"No rows in S3 key {key}")
             return
 
-        insert_query = f"INSERT INTO {self.table} ({self.columns_placeholder}) VALUES "
-        all_values = []
+        tuples = []
         for row in data:
-            values = [row.get(col, None) for col in self.columns]
-            if self.table == "version2":
-                values[0] = '"' + str(values[0]) + '"'
-                values[3] = '"' + str(values[3]) + '"'
-                all_values.append("(" + ", ".join(map(str, values)) + ")")
-            elif self.table == "games" and values[4] is not None:
-                values[2] = '"' + str(values[2]) + '"'
-                values[3] = '"' + str(values[3]) + '"'
-                values[5] = '"' + str(values[5]) + '"'
-                all_values.append("(" + ", ".join(map(str, values)) + ")")
-
-        if not all_values:
+            rendered = self._row_tuple(connection, row)
+            if rendered:
+                tuples.append(rendered)
+        if not tuples:
+            print(f"No insertable rows in S3 key {key}")
             return
 
-        insert_query += ", ".join(all_values)
-        insert_query += " ON DUPLICATE KEY UPDATE "
         update_clause = ", ".join(
-            [f"{self._sql_col(col)} = VALUES({self._sql_col(col)})" for col in self.columns]
+            f"{self._sql_col(col)} = VALUES({self._sql_col(col)})" for col in self.columns
         )
-        insert_query += update_clause
-        cursor.execute(insert_query)
+        # Stay under max_allowed_packet (64MB on this instance) for a full season.
+        batch_size = 1500
+        for start in range(0, len(tuples), batch_size):
+            batch = tuples[start : start + batch_size]
+            insert_query = (
+                f"INSERT INTO {self.table} ({self.columns_placeholder}) VALUES "
+                + ", ".join(batch)
+                + " ON DUPLICATE KEY UPDATE "
+                + update_clause
+            )
+            cursor.execute(insert_query)
         connection.commit()
+        print(f"Loaded {len(tuples)} rows into {self.table} for season {self.season}")
         if own_connection:
             connection.close()
 
@@ -111,16 +146,13 @@ class MySQL_Writer:
         own_connection = self._connection is None
         cursor = connection.cursor()
         if self.table == "version2":
-            cursor.execute(f'DELETE FROM version2 WHERE team="" AND season={self.season}')
+            cursor.execute(
+                "DELETE FROM version2 WHERE team=%s AND season=%s",
+                ("", int(self.season)),
+            )
             connection.commit()
         if own_connection:
             connection.close()
-
-    def setTable(self, new_table):
-        self._configure_table(new_table)
-
-    def setSeason(self, new_season):
-        self.season = new_season
 
 
 class DataDumper:
@@ -176,6 +208,8 @@ class SeasonIngestor(DataDumper):
                 for stat in response_list(stats_payload):
                     row = map_player_stat(stat, self.season)
                     if row and row.get("team"):
+                        # Box scores sometimes carry a different game id than /games.
+                        row["gameID"] = game_id
                         all_stats.append(row)
                         names.add(row["name"])
                 if (i + 1) % 50 == 0:
@@ -211,6 +245,17 @@ def save_checkpoint(state: dict):
     )
 
 
+def _keep_display_name(current: str | None, incoming: str) -> str:
+    """Prefer the spelling that preserves source capitalization."""
+    if current is None:
+        return incoming
+    if current.casefold() != incoming.casefold():
+        return incoming
+    if current == current.casefold() and incoming != incoming.casefold():
+        return incoming
+    return current
+
+
 def sync_all_names(
     names: set[str],
     extra_from_db: bool = True,
@@ -218,10 +263,20 @@ def sync_all_names(
     *,
     seasons: list[int] | None = None,
 ):
-    """Merge names into S3 allNames.txt and repo copies (optionally filter by season)."""
+    """Merge names into S3 allNames.txt and repo copies, keeping source capitalization."""
     from db_config import create_mysql_connection
 
-    merged = set(n.strip().lower() for n in names if n and str(n).strip())
+    by_key: dict[str, str] = {}
+
+    def add_name(name: str):
+        cleaned = " ".join(str(name).split())
+        if cleaned:
+            key = cleaned.casefold()
+            by_key[key] = _keep_display_name(by_key.get(key), cleaned)
+
+    for name in names:
+        if name and str(name).strip():
+            add_name(name)
     conn = connection
     own_connection = False
     if extra_from_db and conn is None:
@@ -239,11 +294,11 @@ def sync_all_names(
             cursor.execute("SELECT DISTINCT name FROM version2")
         for (name,) in cursor.fetchall():
             if name:
-                merged.add(name.strip().lower())
+                add_name(name)
         if own_connection:
             conn.close()
 
-    ordered = sorted(merged)
+    ordered = sorted(by_key.values(), key=str.casefold)
     body = "\n".join(ordered)
     s3_client.put_object(
         Bucket=bucket_name,

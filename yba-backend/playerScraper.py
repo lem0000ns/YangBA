@@ -50,37 +50,37 @@ def test_time(func):
     return wrapper
 
 
+_PLAYER_COLUMNS = (
+    "playerID",
+    "name",
+    "pos",
+    "born",
+    "height",
+    "weight",
+    "high_school",
+    "college",
+    "draft",
+    "career",
+    "teams",
+    "awards",
+    "intro",
+)
+
+
 def insert_player_row(row: dict):
-    values = []
-    for col in (
-        "playerID",
-        "name",
-        "pos",
-        "born",
-        "height",
-        "weight",
-        "high_school",
-        "college",
-        "draft",
-        "career",
-        "teams",
-        "awards",
-        "intro",
-    ):
-        val = row.get(col)
-        if val is None:
-            values.append("NULL")
-        elif col == "teams":
-            values.append("'" + str(val).replace("'", "''") + "'")
-        elif col == "intro":
-            values.append("'" + str(val).replace("'", "\\'") + "'")
-        else:
-            values.append('"' + str(val).replace('"', '\\"') + '"')
+    placeholders = ", ".join(["%s"] * len(_PLAYER_COLUMNS))
+    columns = ", ".join(_PLAYER_COLUMNS)
     cursor.execute(
-        "INSERT INTO players (playerID, name, pos, born, height, weight, "
-        "high_school, college, draft, career, teams, awards, intro) "
-        f"VALUES ({', '.join(values)})"
+        f"INSERT INTO players ({columns}) VALUES ({placeholders})",
+        tuple(row.get(col) for col in _PLAYER_COLUMNS),
     )
+
+
+def save_player_row(row: dict):
+    """Replace one player's profile. playerID is not unique, so delete then insert."""
+    cursor.execute("DELETE FROM players WHERE playerID=%s", (row["playerID"],))
+    insert_player_row(row)
+    connection.commit()
 
 
 def is_abbreviated_api_name(name: str) -> bool:
@@ -95,18 +95,27 @@ def is_abbreviated_api_name(name: str) -> bool:
 
 
 def _intro_from_soup(soup) -> str | None:
-    content = soup.find("div", class_="mw-parser-output")
-    if not content:
-        return None
-    for p in content.find_all("p", recursive=False):
-        text = p.get_text().strip()
+    content = soup.find("div", id="mw-content-text") or soup
+    for p in content.find_all("p"):
+        text = " ".join(p.get_text(" ", strip=True).split())
+        text = text.replace("[ ", "[").replace(" ]", "]")
+        while True:
+            cleaned = text
+            for marker in range(1, 40):
+                cleaned = cleaned.replace(f"[{marker}]", "")
+            if cleaned == text:
+                break
+            text = " ".join(cleaned.split())
         if len(text) > 40:
             return text[:600]
     return None
 
 
 def player_id_for_name(name: str) -> int | None:
-    cursor.execute(f'SELECT playerID FROM version2 WHERE name="{name}" GROUP BY name LIMIT 1')
+    cursor.execute(
+        "SELECT playerID FROM version2 WHERE name=%s LIMIT 1",
+        (name,),
+    )
     row = cursor.fetchone()
     return row[0] if row else None
 
@@ -120,7 +129,7 @@ def fetch_player_profile_from_api_sports(player_id: int, name: str) -> bool:
         p = players[0]
         first = (p.get("firstname") or "").strip()
         last = (p.get("lastname") or "").strip()
-        profile_name = f"{first} {last}".strip().lower() or name
+        profile_name = f"{first} {last}".strip() or name
         height = p.get("height") or {}
         weight = p.get("weight") or {}
         birth = p.get("birth") or {}
@@ -174,19 +183,20 @@ def wikibot(orig, canonical_name, url):
         while r_index < len(rows):
             r = rows[r_index]
             header = r.find("th")
+            header_text = header.get_text(" ", strip=True) if header else ""
 
-            if header and header.text in ["Career highlights and awards", "honors"]:
+            if header_text in ("Career highlights and awards", "Career highlights", "honors"):
                 r_index += 1
-                r = rows[r_index]
-                data = r.find("td", class_="infobox-full-data")
-                if data:
-                    row["awards"] = data.text
-                    break
+                if r_index < len(rows):
+                    data = rows[r_index].find("td", class_="infobox-full-data")
+                    if data:
+                        items = [li.get_text(" ", strip=True) for li in data.find_all("li")]
+                        row["awards"] = "\n".join(items) if items else data.get_text("\n", strip=True)
 
-            elif header and header.text == "Career history":
+            elif header_text == "Career history":
                 teams = []
                 r_index += 1
-                if rows[r_index].find("th") and rows[r_index].find("th").text == "As player:":
+                if rows[r_index].find("th") and rows[r_index].find("th").get_text(" ", strip=True) == "As player:":
                     r_index += 1
                 while r_index < len(rows) and rows[r_index].find("td"):
                     try:
@@ -206,12 +216,13 @@ def wikibot(orig, canonical_name, url):
                 detail = r.find_all("td")
                 if heading and detail:
                     for x, y in zip(heading, detail):
-                        if x.text != "League" and x.text in WIKI_TO_ROW:
-                            row[WIKI_TO_ROW[x.text]] = y.text
+                        label = x.get_text(" ", strip=True)
+                        if label != "League" and label in WIKI_TO_ROW:
+                            row[WIKI_TO_ROW[label]] = y.get_text(" ", strip=True)
             r_index += 1
 
     row["intro"] = _intro_from_soup(soup)
-    insert_player_row(row)
+    save_player_row(row)
     return row
 
 
@@ -223,8 +234,7 @@ def _is_wikipedia_rate_limit(exc: BaseException) -> bool:
 
 
 def _try_wikipedia(canonical: str) -> bool:
-    display = " ".join(part.capitalize() for part in canonical.split(" "))
-    search_results = wikipedia.search(display + " (basketball)")
+    search_results = wikipedia.search(canonical + " (basketball)")
     if not search_results:
         return False
     wiki_title = search_results[0]
@@ -233,18 +243,45 @@ def _try_wikipedia(canonical: str) -> bool:
     return True
 
 
+def _wikipedia_profile(canonical: str, attempts: int = 4) -> bool:
+    """Try Wikipedia, backing off on rate limits before giving up."""
+    for attempt in range(attempts):
+        try:
+            time.sleep(WIKI_DELAY_SEC)
+            return _try_wikipedia(canonical)
+        except Exception as e:
+            if _is_wikipedia_rate_limit(e) and attempt + 1 < attempts:
+                wait = 5 * (attempt + 1)
+                print(f"Wikipedia rate limit for {canonical}, retrying in {wait}s")
+                time.sleep(wait)
+                continue
+            if not _is_wikipedia_rate_limit(e) and str(e) != "Infobox Vcard is absent":
+                print(f"Wikipedia failed for {canonical}: {e}")
+            return False
+    return False
+
+
+def refresh_player_profiles():
+    """Replace every profile from Wikipedia, then API-Sports. Leaves games and box scores."""
+    cursor.execute("DELETE FROM players")
+    connection.commit()
+    print("players cleared; rebuilding profiles from Wikipedia", flush=True)
+    namesToSQL(prefer_api=False)
+
+
 @test_time
-def namesToSQL(prefer_api: bool = True, use_wikipedia: bool = True):
+def namesToSQL(prefer_api: bool = False, use_wikipedia: bool = True):
     name_file = s3_client.get_object(Bucket=bucket_name, Key="allNames.txt")
     names = name_file["Body"].read().decode("utf-8")
 
     stats = {"wiki": 0, "api": 0, "already": 0, "missing": 0}
+    lines = [line for line in names.splitlines() if line.strip()]
 
-    for raw in names.splitlines():
-        canonical = raw.strip().lower()
+    for index, raw in enumerate(lines, 1):
+        canonical = " ".join(raw.split())
         if not canonical:
             continue
-        cursor.execute(f'SELECT 1 FROM players WHERE name="{canonical}" LIMIT 1')
+        cursor.execute("SELECT 1 FROM players WHERE name=%s LIMIT 1", (canonical,))
         if cursor.fetchone():
             stats["already"] += 1
             continue
@@ -261,13 +298,7 @@ def namesToSQL(prefer_api: bool = True, use_wikipedia: bool = True):
             and not via_api
             and not is_abbreviated_api_name(canonical)
         ):
-            try:
-                time.sleep(WIKI_DELAY_SEC)
-                if _try_wikipedia(canonical):
-                    via_wiki = True
-            except Exception as e:
-                if not _is_wikipedia_rate_limit(e) and str(e) != "Infobox Vcard is absent":
-                    print(f"Wikipedia failed for {canonical}: {e}")
+            via_wiki = _wikipedia_profile(canonical)
 
         if not via_wiki and not via_api and player_id and fetch_player_profile_from_api_sports(
             player_id, canonical
@@ -282,6 +313,13 @@ def namesToSQL(prefer_api: bool = True, use_wikipedia: bool = True):
                 stats["api"] += 1
         else:
             stats["missing"] += 1
+
+        if index % 25 == 0 or index == len(lines):
+            print(
+                f"profiles {index}/{len(lines)}: "
+                f"wiki={stats['wiki']} api={stats['api']} missing={stats['missing']}",
+                flush=True,
+            )
 
     print(
         f"namesToSQL: wiki={stats['wiki']} api={stats['api']} "

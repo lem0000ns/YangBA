@@ -7,10 +7,11 @@ from pathlib import Path
 
 import pymysql
 
+import load_env  # noqa: F401  repo-root .env before modules that read credentials
 from api_sports_client import backfill_season_years
 from api_sports_names import clear_name_cache
 from db_config import create_mysql_connection
-from playerScraper import namesToSQL
+from playerScraper import namesToSQL, refresh_player_profiles
 from utilities import (
     MySQL_Writer,
     SeasonIngestor,
@@ -100,7 +101,7 @@ def _ingest_season_worker(
 
     print(f"Starting season {season} (thread {threading.current_thread().name})")
     if skip_ingest:
-        print(f"  skip_ingest: loading MySQL from S3 only")
+        print("  skip_ingest: loading MySQL from S3 only")
         season_names = set()
     else:
         ingestor = SeasonIngestor(season)
@@ -301,7 +302,7 @@ def lambda_handler(event, context):
                 "true",
                 "yes",
             )
-            namesToSQL(use_wikipedia=use_wiki)
+            namesToSQL(prefer_api=False, use_wikipedia=use_wiki)
 
         verify_report = None
         if do_verify and not skip_mysql and seasons:
@@ -352,14 +353,21 @@ if __name__ == "__main__":
         help="Verify S3/RDS/API coverage only (optional --season list; default all backfill years)",
     )
     parser.add_argument("--skip-profiles", action="store_true", help="Skip Wikipedia/API player profile scrape")
+    parser.add_argument(
+        "--profiles-only",
+        action="store_true",
+        help="Rebuild player profiles from Wikipedia (API-Sports fallback). Does not touch games or box scores.",
+    )
     args = parser.parse_args()
+
+    if args.profiles_only:
+        refresh_player_profiles()
+        raise SystemExit(0)
 
     if args.verify and not args.force and not args.mysql_only and not args.prepare_db:
         if args.seasons:
             report = verify_seasons(args.seasons)
         else:
-            from api_sports_client import backfill_season_years
-
             report = verify_seasons(backfill_season_years())
         print_report(report)
         raise SystemExit(0 if report["ok"] else 1)

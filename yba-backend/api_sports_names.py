@@ -6,7 +6,7 @@ import re
 
 from api_sports_client import get_json, response_list
 
-# playerID -> canonical lower-case "first last" (never store abbreviated names here)
+# playerID -> display name as provided by the roster or API (never store abbreviated names here)
 _name_by_id: dict[int, str] = {}
 
 # "A.", "A.J.", "C.J."
@@ -71,9 +71,9 @@ def _nba_full_name(last: str, first_abbrev: str) -> str | None:
     active = [p for p in matches if p.get("is_active")]
     pool = active or matches
     if len(pool) == 1:
-        return pool[0]["full_name"].lower()
+        return pool[0]["full_name"]
     pool.sort(key=lambda p: p["id"], reverse=True)
-    return pool[0]["full_name"].lower()
+    return pool[0]["full_name"]
 
 
 def _fetch_full_name(player_id: int) -> str | None:
@@ -85,7 +85,7 @@ def _fetch_full_name(player_id: int) -> str | None:
     first = (p.get("firstname") or "").strip()
     last = (p.get("lastname") or "").strip()
     full = f"{first} {last}".strip()
-    return full.lower() if full else None
+    return full or None
 
 
 def _cache_name(player_id: int | None, name: str) -> str:
@@ -109,7 +109,7 @@ def canonical_player_name(player_id: int | None, first: str, last: str) -> str |
         if cached:
             return cached
 
-    raw = f"{first} {last}".strip().lower()
+    raw = f"{first} {last}".strip()
 
     if first_name_needs_resolution(first) or _name_still_abbreviated(raw):
         nba_name = _nba_full_name(last, first)

@@ -5,6 +5,26 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND="$ROOT/yba-backend"
 cd "$BACKEND"
 
+# Gitignored repo-root .env. A variable already exported in the shell wins.
+if [[ -f "$ROOT/.env" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" == export\ * ]] && line="${line#export }"
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="${key%"${key##*[![:space:]]}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    if [[ ${#value} -ge 2 && ( "$value" == \"*\" || "$value" == \'*\' ) ]]; then
+      value="${value:1:${#value}-2}"
+    fi
+    if [[ -n "$key" && -z "${!key:-}" ]]; then
+      export "$key=$value"
+    fi
+  done < "$ROOT/.env"
+fi
+
 if [[ -z "${API_SPORTS_KEY:-}" ]]; then
   echo "Set API_SPORTS_KEY before running." >&2
   exit 1
@@ -33,4 +53,5 @@ fi
 # --mysql-only   load existing S3 files into RDS (no API calls)
 # --sequential   one season at a time (default: parallel, one thread per season)
 # --verify       S3/RDS/API game coverage check only (no ingest)
+# --profiles-only  rebuild player bios from Wikipedia; games and box scores stay
 exec "$PY" dataDump.py "$@"

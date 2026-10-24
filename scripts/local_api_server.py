@@ -13,6 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "yba-backen
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
+import load_env  # noqa: E402,F401  repo-root .env before MySQL/S3 imports
 from routeHandler import lambda_handler  # noqa: E402
 
 PORT = int(os.environ.get("YBA_LOCAL_API_PORT", "8765"))

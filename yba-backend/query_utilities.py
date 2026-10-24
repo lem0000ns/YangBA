@@ -14,6 +14,7 @@ connection = pymysql.connect(
     password=os.getenv("SECRETS_MANAGER_CONTRASENA"),
     database="yba",
 )
+connection.autocommit(True)
 cursor = connection.cursor()
 table = " FROM version2 v INNER JOIN games g ON v.gameID = g.gameID"
 
@@ -28,13 +29,16 @@ names = name_file["Body"].read().decode("utf-8")
 
 
 def getClosestName(name):
-    """Resolve a user-typed name to the closest canonical name in allNames.txt."""
-    if name in names:
-        return name
+    """Resolve a user-typed name to the stored spelling in allNames.txt."""
+    target = name.strip().casefold()
     best_score = float("-inf")
     best_name = ""
     for candidate in names.splitlines():
-        score = fuzz.ratio(candidate, name)
+        if not candidate:
+            continue
+        if candidate.casefold() == target:
+            return candidate
+        score = fuzz.ratio(candidate.casefold(), target)
         if score > best_score:
             best_score = score
             best_name = candidate
