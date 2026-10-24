@@ -101,11 +101,15 @@ kbd {
 
 /* Signature sheep texture */
 
+.sheep-pattern,
+.sheep-pattern * {
+  pointer-events: none;
+}
+
 .sheep-pattern {
   position: fixed;
   inset: -140px 0;
   z-index: 0;
-  pointer-events: none;
   transform: translate3d(0, var(--pattern-shift, 0px), 0);
   transition: opacity 0.6s var(--ease);
   -webkit-mask-image: radial-gradient(ellipse 58% 52% at 50% 40%, rgba(0, 0, 0, 0.28) 0%, #000 80%);

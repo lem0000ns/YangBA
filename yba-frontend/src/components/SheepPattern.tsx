@@ -35,7 +35,7 @@ const SheepPattern = () => {
 
   return (
     <div className="sheep-pattern" ref={ref} aria-hidden="true">
-      <svg width="100%" height="100%">
+      <svg width="100%" height="100%" pointerEvents="none">
         <defs>
           <pattern
             id="yba-sheep"

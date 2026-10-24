@@ -17,7 +17,9 @@ function App() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
 
-  useEffect(() => window.scrollTo(0, 0), [pathname, search]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname, search]);
 
   /** Navigates to the stats results URL from form values. */
   const handleStatsSubmit = (

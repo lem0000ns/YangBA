@@ -50,7 +50,9 @@ const Navigation = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => setSearchOpen(false), [location.pathname]);
+  useEffect(() => {
+    setSearchOpen(false);
+  }, [location.pathname]);
 
   /** Routes to a player profile or home when search completes. */
   const handleSearch = (name: string) => {

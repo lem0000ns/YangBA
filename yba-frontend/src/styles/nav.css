@@ -16,6 +16,7 @@
 
 .nav-inner {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -24,6 +25,7 @@
   height: 68px;
   margin: 0 auto;
   padding: 0 24px;
+  transform: translateZ(0);
 }
 
 /* Wordmark */
@@ -86,6 +88,7 @@
   border-radius: 999px;
   background: var(--card);
   box-shadow: var(--shadow-sm), 0 0 0 1px var(--line);
+  pointer-events: none;
   transition: transform 0.35s var(--ease), width 0.35s var(--ease);
 }
 
@@ -421,5 +424,15 @@
   .footer-glyph,
   .footer-links {
     justify-self: start;
+  }
+}
+
+/* Sticky backdrop-filter on WebKit hit-tests the whole page, so taps never reach buttons. */
+@supports (-webkit-touch-callout: none) {
+  .nav,
+  .nav.is-scrolled {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--wool);
   }
 }
