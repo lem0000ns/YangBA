@@ -61,8 +61,8 @@ export const AGG_OPTIONS = [
   { value: "min", label: "Worst game" },
 ];
 
-/** UI ending years for loaded data (2018-19 through 2025-26). */
-export const SEASONS = ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"];
+/** UI ending years for loaded data (2015-16 through 2025-26). */
+export const SEASONS = ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"];
 
 /** Season values are the year a season ends; the API is queried with value - 1. */
 export const seasonLabel = (season: string) => {
