@@ -6,9 +6,9 @@ import traceback
 
 import boto3
 
-from api_sports_client import LEAGUE_STANDARD, get_json, response_list
-from api_sports_mappers import is_finished_game, map_game, map_player_stat
-from api_sports_names import clear_name_cache
+from ingest.api_sports_client import LEAGUE_STANDARD, get_json, response_list
+from ingest.api_sports_mappers import is_finished_game, map_game, map_player_stat
+from ingest.api_sports_names import clear_name_cache
 
 s3_client = boto3.client("s3", "us-west-1")
 bucket_name = "nba-players.bucket"
@@ -36,7 +36,7 @@ class MySQL_Writer:
     def _db_connection(self):
         if self._connection is not None:
             return self._connection
-        from db_config import create_mysql_connection
+        from common.db_config import create_mysql_connection
 
         return create_mysql_connection()
 
@@ -235,7 +235,7 @@ def _keep_display_name(current: str | None, incoming: str) -> str:
 
 def sync_all_names(names: set[str], extra_from_db: bool = True):
     """Merge names into S3 allNames.txt and repo copies, keeping source capitalization."""
-    from db_config import create_mysql_connection
+    from common.db_config import create_mysql_connection
 
     by_key: dict[str, str] = {}
 
@@ -268,10 +268,10 @@ def sync_all_names(names: set[str], extra_from_db: bool = True):
         ContentType="text/plain",
     )
 
-    repo_root = __import__("pathlib").Path(__file__).resolve().parent.parent
+    repo_root = __import__("pathlib").Path(__file__).resolve().parents[2]
     for rel in (
         "yba-frontend/src/pages/allNames.txt",
-        "yba-backend/allNames.txt",
+        "yba-backend/data/allNames.txt",
     ):
         path = repo_root / rel
         path.parent.mkdir(parents=True, exist_ok=True)

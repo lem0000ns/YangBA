@@ -20,8 +20,8 @@ const paths = [
     index: "01",
     title: "Look up a stat",
     description: "Totals, averages, and single-game highs or lows.",
-    required: ["stat", "metric"],
-    optional: ["player", "seasons", "filters"],
+    required: ["player", "stat", "metric"],
+    optional: ["seasons", "filters"],
     image: statsImage,
   },
   {

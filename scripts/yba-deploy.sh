@@ -28,7 +28,12 @@ ZIP="$BACKEND/routeHandler.zip"
 rm -f "$ZIP"
 (
   cd "$BACKEND"
-  zip -j "$ZIP" routeHandler.py query_utilities.py
+  zip -r "$ZIP" \
+    routeHandler.py \
+    query/__init__.py \
+    query/routeHandler.py \
+    query/query_utilities.py \
+    -x '*__pycache__*' '*.pyc'
 )
 
 aws lambda update-function-code \

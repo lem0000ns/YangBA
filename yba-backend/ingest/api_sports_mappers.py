@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from api_sports_names import canonical_player_name
+from ingest.api_sports_names import canonical_player_name
 
 
 def parse_minutes(min_val) -> int | None:

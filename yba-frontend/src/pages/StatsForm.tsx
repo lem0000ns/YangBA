@@ -5,12 +5,32 @@ import {
   FilterBuilder,
   QueryCard,
   QueryControl,
+  SearchIcon,
   SectionHeader,
   SegmentedControl,
+  SheepMark,
 } from "../components/All";
+import { apiBaseUrl } from "../apiConfig";
+
+/** Dev posts to the local API so the question can be read without an API Gateway route. */
+const askUrl = `${(import.meta.env.VITE_ASK_URL || (import.meta.env.DEV ? "http://127.0.0.1:8765/" : apiBaseUrl)).replace(
+  /\/?$/,
+  "/"
+)}ask`;
 import { AGG_OPTIONS, DEFAULT_STAGE, GAME_FILTER_STATS, PCT_STATS, statLabel } from "../constants";
 import { QueryDraft, getStatInfo } from "../utilities";
 import { SeasonPicker, StagePicker, StatPicker, allNames, describeSeasons, useFptsInfo } from "./queryFields";
+
+interface AskResult {
+  ok: boolean;
+  error?: string;
+  name?: string;
+  stat?: string;
+  agg?: string;
+  seasons?: string[];
+  filters?: string[];
+  stage?: string;
+}
 
 interface Props {
   onSubmit: (
@@ -34,6 +54,9 @@ const StatsForm = ({ onSubmit }: Props) => {
   const [filters, setFilters] = useState<string[]>(draft?.filters ?? []);
   const [error, setError] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [question, setQuestion] = useState("");
+  const [askError, setAskError] = useState("");
+  const [asking, setAsking] = useState(false);
   const fpts = useFptsInfo();
 
   /** Updates stat selection and adjusts metric constraints for that stat. */
@@ -52,16 +75,50 @@ const StatsForm = ({ onSubmit }: Props) => {
     }
   };
 
+  /** Sends the sentence to /ask and runs the stats query it returns. */
+  const handleAsk = async (e: FormEvent) => {
+    e.preventDefault();
+    const text = question.trim();
+    if (!text || asking) return;
+    setAskError("");
+    setAsking(true);
+    try {
+      const response = await fetch(askUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      let data: AskResult;
+      try {
+        data = (await response.json()) as AskResult;
+      } catch {
+        setAskError("Could not read a response from the API.");
+        return;
+      }
+      if (!response.ok || !data.ok || !data.name || !data.stat || !data.agg) {
+        setAskError(data.error || "That question could not be turned into a stats query.");
+        return;
+      }
+      onSubmit(data.name ?? "", data.stat, data.agg, data.seasons ?? [], data.filters ?? [], data.stage ?? "");
+    } catch {
+      setAskError("Could not reach the API.");
+    } finally {
+      setAsking(false);
+    }
+  };
+
   /** Validates required fields and calls onSubmit with form state. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const missing = [
+      !nameValue.trim() ? "player" : "",
       !statValue ? "stat" : "",
       !aggValue ? "metric" : "",
     ].filter(Boolean);
-    if (missing.length == 2) setError("Choose a stat and a metric.");
+    if (missing.length == 0) onSubmit(nameValue.trim(), statValue, aggValue, seasons, filters, stage);
     else if (missing.length == 1) setError(`Choose a ${missing[0]}.`);
-    else onSubmit(nameValue, statValue, aggValue, seasons, filters, stage);
+    else if (missing.length == 2) setError(`Choose a ${missing[0]} and a ${missing[1]}.`);
+    else setError("Choose a player, a stat, and a metric.");
   };
 
   /** Clears all stats form fields and validation errors. */
@@ -76,10 +133,10 @@ const StatsForm = ({ onSubmit }: Props) => {
     setFormKey((k) => k + 1);
   };
 
-  const ready = statValue != "" && aggValue != "";
+  const ready = nameValue.trim() != "" && statValue != "" && aggValue != "";
   const preview = ready
     ? getStatInfo(nameValue, statValue, aggValue, seasons, filters, "", -1, "", stage)
-    : "Choose a stat and a metric.";
+    : "Choose a player, a stat, and a metric.";
 
   return (
     <div className="page page-query">
@@ -88,8 +145,40 @@ const StatsForm = ({ onSubmit }: Props) => {
         align="center"
         eyebrow="Stats"
         title="Explore the NBA"
-        description="Look up any stat for a player or the whole league."
+        description="Look up any stat for a player."
       />
+
+      <form className="nl-ask reveal" onSubmit={handleAsk}>
+        <div className="nl-ask-label">Ask in words</div>
+        <p className="nl-ask-hint">One player, one stat.</p>
+        <div className="nl-ask-field">
+          <input
+            className="nl-ask-input"
+            value={question}
+            placeholder="Search up stats from your favorite player"
+            aria-label="Stats question"
+            autoComplete="off"
+            onChange={(event) => {
+              setQuestion(event.target.value);
+              setAskError("");
+            }}
+          />
+          <button
+            type="submit"
+            className="nl-ask-search"
+            aria-label={asking ? "Searching" : "Search"}
+            disabled={asking || question.trim() == ""}
+          >
+            <SearchIcon size={18} />
+          </button>
+        </div>
+        {askError && (
+          <div className="query-error" role="alert">
+            <SheepMark size={22} wool="currentColor" face="currentColor" />
+            {askError}
+          </div>
+        )}
+      </form>
 
       <QueryCard
         key={formKey}
@@ -100,12 +189,15 @@ const StatsForm = ({ onSubmit }: Props) => {
         preview={preview}
         error={error}
       >
-        <QueryControl label="Player" span={2}>
+        <QueryControl label="Player" span={2} required invalid={!!error && !nameValue.trim()}>
           <Autocomplete
             possibleValues={allNames}
             initialValue={nameValue}
-            onChange={(value) => setNameValue(value)}
-            placeholder="All players"
+            onChange={(value) => {
+              setNameValue(value);
+              setError("");
+            }}
+            placeholder="Choose a player"
           />
         </QueryControl>
 

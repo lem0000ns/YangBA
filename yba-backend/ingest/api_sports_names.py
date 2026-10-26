@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from api_sports_client import get_json, response_list
+from ingest.api_sports_client import get_json, response_list
 
 # playerID -> display name as provided by the roster or API (never store abbreviated names here)
 _name_by_id: dict[int, str] = {}

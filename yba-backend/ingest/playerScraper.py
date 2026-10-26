@@ -10,7 +10,7 @@ import requests
 import wikipedia
 from bs4 import BeautifulSoup
 
-from api_sports_client import get_json, response_list
+from ingest.api_sports_client import get_json, response_list
 
 s3_client = boto3.client("s3", "us-west-1")
 bucket_name = "nba-players.bucket"

@@ -16,7 +16,7 @@ Landing page introduces three tools (**Stats**, **Games**, **Rankings**), a live
 
 ### Stats
 
-Build a question about **one player** (optional) and **one stat**:
+Build a question about **one player** and **one stat**:
 
 - Pick stat (points, 3PM, FG%, FPTS, games played, etc.) and **metric**: total, per game, best game, or worst game.
 - Optionally narrow by **seasons** and **filters** using the filter builder (choose stat, comparison, and threshold).
@@ -59,7 +59,7 @@ Browser (React + Vite)
   → utilities.computeURL() builds API query string (season, stat, agg, filter, …)
   → GET API Gateway → stats | games | rank
   → Lambda routeHandler.lambda_handler
-       • StatComputer | GameComputer | RankComputer (query_utilities.py)
+       • StatComputer | GameComputer | RankComputer (query/query_utilities.py)
        • Fuzzy player name match vs S3 allNames.txt (FuzzyWuzzy)
        • SQL against MySQL: version2 ⨝ games (+ players for profiles)
   → JSON response
@@ -68,8 +68,8 @@ Browser (React + Vite)
 
 | Frontend | Backend |
 |----------|---------|
-| `App.tsx` — routes, form → result navigation | `routeHandler.py` — HTTP dispatch, percentile for stats |
-| `pages/*Form.tsx` — query builders, FilterBuilder | `query_utilities.py` — SQL generation, FPTS expression |
+| `App.tsx` — routes, form → result navigation | `query/routeHandler.py` — HTTP dispatch, percentile for stats |
+| `pages/*Form.tsx` — query builders, FilterBuilder | `query/query_utilities.py` — SQL generation, FPTS expression |
 | `pages/ResultsPage.tsx` — fetch + render | RDS `yba`: `version2`, `games`, `players` |
 | `content/PlayerInfo.tsx` — profile | `players` row from Wikipedia scrape |
 | `constants.ts`, `utilities.tsx` — labels & API encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
@@ -89,11 +89,11 @@ Separate from the site API; runs on a schedule (daily ETL Lambda):
 ```
 dataDump.lambda_handler
   → API-Sports NBA v2 (v2.nba.api-sports.io)          [API_SPORTS_KEY]
-  → SeasonIngestor (utilities.py): games + /players/statistics?game=
+  → SeasonIngestor (ingest/utilities.py): games + /players/statistics?game=
   → NDJSON on S3 (nba-players.bucket)
   → MySQL_Writer → INSERT … ON DUPLICATE KEY UPDATE → games, version2
   → sync_all_names → allNames.txt (S3 + frontend bundle)
-  → playerScraper.namesToSQL() → Wikipedia, API-Sports fallback → players
+  → ingest/playerScraper.namesToSQL() → Wikipedia, API-Sports fallback → players
 ```
 
 The scheduled run loads the newest API season into S3 and MySQL. Older seasons already stored are left in place. A Lambda event may pass `seasons` (API start years) to load those years instead.
@@ -109,13 +109,13 @@ Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerI
 | Path | Role |
 |------|------|
 | `yba-frontend/` | React 18, TypeScript, Vite, react-router |
-| `yba-backend/routeHandler.py` | Query API Lambda handler |
-| `yba-backend/query_utilities.py` | SQL builders + name matching |
-| `yba-backend/dataDump.py` | Scheduled ETL entry |
-| `yba-backend/api_sports_client.py` | API-Sports HTTP client |
-| `yba-backend/utilities.py` | Season ingest + MySQL load + allNames sync |
+| `yba-backend/query/` | Stats API: handler, SQL, natural-language ask |
+| `yba-backend/ingest/` | Season load, API-Sports client, player profiles |
+| `yba-backend/common/` | Repo `.env` loader and MySQL connection |
+| `yba-backend/data/allNames.txt` | Local copy of the player-name list |
+| `yba-backend/routeHandler.py` | Lambda shim; handler stays `routeHandler.lambda_handler` |
+| `yba-backend/dataDump.py` | Lambda shim; handler stays `dataDump.lambda_handler` |
 | `scripts/local_api_server.py` | Local routeHandler for dev |
-| `yba-backend/playerScraper.py` | Wikipedia → `players` |
 | `yba-backend/imageDumper/` | Headshot scraper Lambda |
 | `scripts/yba-deploy.sh` | Git push + API Lambda + S3 + CloudFront |
 
@@ -169,7 +169,7 @@ yba-deploy "your commit message"
 The script will:
 
 1. Commit all dirty files (if any) with your message and push `origin/<current-branch>`.
-2. Zip and upload `routeHandler.py` + `query_utilities.py` to Lambda **`routeHandler`** (`us-west-1`).
+2. Zip and upload `routeHandler.py` plus `query/routeHandler.py` and `query/query_utilities.py` to Lambda **`routeHandler`** (`us-west-1`). The handler setting stays `routeHandler.lambda_handler`.
 3. `npm run build` and `aws s3 sync` to **`s3://yangba.net`**, then invalidate CloudFront **`/*`**.
 
 **Lambda environment (query API):** `SECRETS_MANAGER_CONTRASENA` — MySQL password.

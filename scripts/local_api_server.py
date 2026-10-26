@@ -13,7 +13,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "yba-backen
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
-import load_env  # noqa: E402,F401  repo-root .env before MySQL/S3 imports
+import common.load_env  # noqa: E402,F401  repo-root .env before MySQL/S3 imports
+from query.nl_stats import ask_stats  # noqa: E402
 from routeHandler import lambda_handler  # noqa: E402
 
 PORT = int(os.environ.get("YBA_LOCAL_API_PORT", "8765"))
@@ -22,6 +23,23 @@ PORT = int(os.environ.get("YBA_LOCAL_API_PORT", "8765"))
 class YangBAHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         print(format % args)
+
+    def _write(self, result):
+        body = result.get("body", "{}")
+        status = result.get("statusCode", 500)
+        headers = result.get("headers") or {}
+        self.send_response(status)
+        self.send_header("Content-Type", headers.get("Content-Type", "application/json"))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body.encode("utf-8") if isinstance(body, str) else json.dumps(body).encode())
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -38,23 +56,50 @@ class YangBAHandler(BaseHTTPRequestHandler):
             "queryStringParameters": query or None,
             "multiValueQueryStringParameters": multi or None,
         }
-        result = lambda_handler(event, None)
-        body = result.get("body", "{}")
-        status = result.get("statusCode", 500)
-        headers = result.get("headers") or {}
+        self._write(lambda_handler(event, None))
 
-        self.send_response(status)
-        self.send_header("Content-Type", headers.get("Content-Type", "application/json"))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body.encode("utf-8") if isinstance(body, str) else json.dumps(body).encode())
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        resource = parts[0] if parts else ""
+        if resource != "ask":
+            self._write(
+                {
+                    "statusCode": 404,
+                    "body": json.dumps({"ok": False, "error": "Not found."}),
+                }
+            )
+            return
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        raw = self.rfile.read(length).decode("utf-8") if length else ""
+        try:
+            payload = json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            self._write(
+                {
+                    "statusCode": 400,
+                    "body": json.dumps({"ok": False, "error": "The request body must be JSON."}),
+                }
+            )
+            return
+        text = payload.get("text", "") if isinstance(payload, dict) else ""
+        if not isinstance(text, str):
+            self._write(
+                {
+                    "statusCode": 400,
+                    "body": json.dumps({"ok": False, "error": "The question must be text."}),
+                }
+            )
+            return
+        status, body = ask_stats(text)
+        self._write({"statusCode": status, "body": json.dumps(body)})
 
 
 def main():
     if not os.getenv("SECRETS_MANAGER_CONTRASENA"):
         print("Warning: SECRETS_MANAGER_CONTRASENA not set (MySQL connection may fail)")
     server = HTTPServer(("127.0.0.1", PORT), YangBAHandler)
-    print(f"YangBA local API http://127.0.0.1:{PORT}/  (stats|games|rank|players)")
+    print(f"YangBA local API http://127.0.0.1:{PORT}/  (stats|games|rank|players|ask)")
     server.serve_forever()
 
 
