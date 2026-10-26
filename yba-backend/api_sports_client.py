@@ -8,10 +8,6 @@ import requests
 
 BASE_URL = "https://v2.nba.api-sports.io"
 LEAGUE_STANDARD = "standard"
-# API season start years (2023 = 2023-24, etc.)
-BACKFILL_SEASON_START = 2023
-# When True, omit the newest API season (usually in progress), through last completed only.
-BACKFILL_EXCLUDE_CURRENT_SEASON = True
 
 
 def _api_key() -> str:
@@ -64,17 +60,3 @@ def response_list(data: dict[str, Any]) -> list:
 def fetch_seasons() -> list[int]:
     """All season start years available in API-NBA."""
     return [int(y) for y in response_list(get_json("/seasons"))]
-
-
-def backfill_season_years() -> list[int]:
-    """
-    Season start years for backfill.
-    Default: 2023-24 through last completed season (excludes current API max season).
-    """
-    seasons = sorted(fetch_seasons())
-    if not seasons:
-        return []
-    upper = max(seasons)
-    if BACKFILL_EXCLUDE_CURRENT_SEASON and len(seasons) >= 1:
-        upper = max(seasons) - 1
-    return [y for y in seasons if BACKFILL_SEASON_START <= y <= upper]

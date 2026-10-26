@@ -74,7 +74,7 @@ Browser (React + Vite)
 | `content/PlayerInfo.tsx` — profile | `players` row from Wikipedia scrape |
 | `constants.ts`, `utilities.tsx` — labels & API encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
 
-**Local dev** runs the frontend (`npm run dev`). By default it calls the **deployed** API. To query **local routeHandler** against RDS after a backfill, set `VITE_API_BASE_URL=http://127.0.0.1:8765/` (see [Local API + backfill verify](#local-api--backfill-verify) below).
+**Local dev** runs the frontend (`npm run dev`). By default it calls the **deployed** API. To query **local routeHandler** against RDS, set `VITE_API_BASE_URL=http://127.0.0.1:8765/` (see [Local API](#local-api) below).
 
 **Season note:** UI season labels are the **ending year** of a season (e.g. `2017` = 2016–17). The API is called with `season = UI value − 1`.
 
@@ -96,18 +96,7 @@ dataDump.lambda_handler
   → playerScraper.namesToSQL() → Wikipedia, API-Sports fallback → players
 ```
 
-Backfill loads API season start years **2023–2025** (2023-24 through 2025-26), **excluding the current API season**. Before load, migrations run `drop_opi.sql` and `prepare_backfill.sql` (truncate `games` / `version2`).
-
-```bash
-cd yba-backend
-export API_SPORTS_KEY=… SECRETS_MANAGER_CONTRASENA=…
-python dataDump.py              # full backfill + MySQL (parallel: one thread per season)
-python dataDump.py --force      # ignore S3 checkpoint, re-fetch all seasons
-python dataDump.py --sequential # single-threaded seasons (slower, easier on API rate limits)
-python dataDump.py --verify     # check S3 vs RDS vs API game coverage only
-```
-
-After a normal backfill, `verify_backfill` runs automatically and fails the job if any game or finished box score is missing from RDS.
+The scheduled run loads the newest API season into S3 and MySQL. Older seasons already stored are left in place. A Lambda event may pass `seasons` (API start years) to load those years instead.
 
 Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerImages/`), served via CloudFront for `PlayerAvatar`.
 
@@ -122,7 +111,7 @@ Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerI
 | `yba-frontend/` | React 18, TypeScript, Vite, react-router |
 | `yba-backend/routeHandler.py` | Query API Lambda handler |
 | `yba-backend/query_utilities.py` | SQL builders + name matching |
-| `yba-backend/dataDump.py` | Scheduled ETL / backfill entry |
+| `yba-backend/dataDump.py` | Scheduled ETL entry |
 | `yba-backend/api_sports_client.py` | API-Sports HTTP client |
 | `yba-backend/utilities.py` | Season ingest + MySQL load + allNames sync |
 | `scripts/local_api_server.py` | Local routeHandler for dev |
@@ -142,9 +131,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Local API + backfill verify
+### Local API
 
-After RDS has current-season data:
+To query RDS from the app while developing:
 
 ```bash
 # Terminal 1 — query Lambda locally (needs AWS creds for S3 allNames.txt + MySQL password)

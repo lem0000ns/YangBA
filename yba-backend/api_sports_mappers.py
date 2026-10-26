@@ -36,6 +36,16 @@ def game_date_from_start(start: str) -> str:
     return pdt_time.strftime("%m-%d-%Y")
 
 
+def team_label(team: dict | None) -> str:
+    """NBA code when the API has one; otherwise the club name (exhibitions)."""
+    team = team or {}
+    code = str(team.get("code") or "").strip()
+    if code:
+        return code
+    label = str(team.get("nickname") or team.get("name") or "").strip()
+    return label[:50]
+
+
 def map_game(game: dict) -> dict | None:
     if game.get("league") != "standard":
         return None
@@ -51,9 +61,9 @@ def map_game(game: dict) -> dict | None:
         "gameID": game_id,
         "stage": game.get("stage"),
         "gameDate": game_date_from_start(start),
-        "home": game["teams"]["home"]["code"],
+        "home": team_label(game["teams"]["home"]),
         "homePts": home_pts,
-        "away": game["teams"]["visitors"]["code"],
+        "away": team_label(game["teams"]["visitors"]),
         "awayPts": away_pts,
         "_status_short": (game.get("status") or {}).get("short"),
     }
@@ -76,12 +86,11 @@ def map_player_stat(stat: dict, season: int) -> dict | None:
     if not name:
         return None
     game_id = (stat.get("game") or {}).get("id")
-    team_code = (stat.get("team") or {}).get("code") or ""
     return {
         "name": name,
         "playerID": player_id,
         "gameID": game_id,
-        "team": team_code,
+        "team": team_label(stat.get("team")),
         "season": season,
         "points": stat.get("points"),
         "min": min_played,

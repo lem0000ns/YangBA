@@ -261,14 +261,6 @@ def _wikipedia_profile(canonical: str, attempts: int = 4) -> bool:
     return False
 
 
-def refresh_player_profiles():
-    """Replace every profile from Wikipedia, then API-Sports. Leaves games and box scores."""
-    cursor.execute("DELETE FROM players")
-    connection.commit()
-    print("players cleared; rebuilding profiles from Wikipedia", flush=True)
-    namesToSQL(prefer_api=False)
-
-
 @test_time
 def namesToSQL(prefer_api: bool = False, use_wikipedia: bool = True):
     name_file = s3_client.get_object(Bucket=bucket_name, Key="allNames.txt")

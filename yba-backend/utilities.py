@@ -5,7 +5,6 @@ import time
 import traceback
 
 import boto3
-from botocore.exceptions import ClientError
 
 from api_sports_client import LEAGUE_STANDARD, get_json, response_list
 from api_sports_mappers import is_finished_game, map_game, map_player_stat
@@ -14,7 +13,6 @@ from api_sports_names import clear_name_cache
 s3_client = boto3.client("s3", "us-west-1")
 bucket_name = "nba-players.bucket"
 
-CHECKPOINT_KEY = "etl/backfill_checkpoint.json"
 GAME_REQUEST_DELAY_SEC = 0.35
 
 
@@ -224,27 +222,6 @@ class SeasonIngestor(DataDumper):
         return names
 
 
-def load_checkpoint() -> dict:
-    try:
-        obj = s3_client.get_object(Bucket=bucket_name, Key=CHECKPOINT_KEY)
-        return json.loads(obj["Body"].read().decode("utf-8"))
-    except ClientError as e:
-        if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-            return {}
-        return {}
-    except Exception:
-        return {}
-
-
-def save_checkpoint(state: dict):
-    s3_client.put_object(
-        Bucket=bucket_name,
-        Key=CHECKPOINT_KEY,
-        Body=json.dumps(state, indent=2),
-        ContentType="application/json",
-    )
-
-
 def _keep_display_name(current: str | None, incoming: str) -> str:
     """Prefer the spelling that preserves source capitalization."""
     if current is None:
@@ -256,13 +233,7 @@ def _keep_display_name(current: str | None, incoming: str) -> str:
     return current
 
 
-def sync_all_names(
-    names: set[str],
-    extra_from_db: bool = True,
-    connection=None,
-    *,
-    seasons: list[int] | None = None,
-):
+def sync_all_names(names: set[str], extra_from_db: bool = True):
     """Merge names into S3 allNames.txt and repo copies, keeping source capitalization."""
     from db_config import create_mysql_connection
 
@@ -277,25 +248,15 @@ def sync_all_names(
     for name in names:
         if name and str(name).strip():
             add_name(name)
-    conn = connection
-    own_connection = False
-    if extra_from_db and conn is None:
+    if extra_from_db:
         conn = create_mysql_connection()
-        own_connection = True
-    if extra_from_db and conn:
-        cursor = conn.cursor()
-        if seasons:
-            placeholders = ",".join(["%s"] * len(seasons))
-            cursor.execute(
-                f"SELECT DISTINCT name FROM version2 WHERE season IN ({placeholders})",
-                seasons,
-            )
-        else:
+        try:
+            cursor = conn.cursor()
             cursor.execute("SELECT DISTINCT name FROM version2")
-        for (name,) in cursor.fetchall():
-            if name:
-                add_name(name)
-        if own_connection:
+            for (name,) in cursor.fetchall():
+                if name:
+                    add_name(name)
+        finally:
             conn.close()
 
     ordered = sorted(by_key.values(), key=str.casefold)
