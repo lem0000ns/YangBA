@@ -172,7 +172,10 @@ class GameComputer(QueryComputer):
             query += super().compute_filterQuery(False, self.filters)
         if self.team:
             query += f" AND team='{self.team}'"
-        query += f" LIMIT {self.limit}"
+        query += " ORDER BY STR_TO_DATE(g.gameDate, '%m-%d-%Y') DESC, g.gameID DESC"
+        limit = "" if self.limit is None else str(self.limit).strip()
+        if limit.isdigit() and 0 < int(limit) < 100000:
+            query += f" LIMIT {int(limit)}"
         return query
 
 

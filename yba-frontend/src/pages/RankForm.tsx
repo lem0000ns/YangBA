@@ -10,6 +10,7 @@ import {
 } from "../components/All";
 import { AGG_OPTIONS, DEFAULT_STAGE, RANK_FILTER_STATS, TEAMS, statLabel } from "../constants";
 import { QueryDraft, getStatInfo } from "../utilities";
+import AskBox from "./AskBox";
 import { SeasonPicker, StagePicker, StatPicker, TeamPicker, describeSeasons, useFptsInfo } from "./queryFields";
 
 interface Props {
@@ -81,6 +82,27 @@ const RankForm = ({ onSubmit }: Props) => {
         eyebrow="Rankings"
         title="Rank players"
         description="Build a leaderboard for any stat."
+      />
+
+      <AskBox
+        page="rank"
+        hint="A stat and a metric. The list is 10 players unless you say otherwise."
+        placeholder="Top 10 scorers per game in 2023-24"
+        ariaLabel="Rankings question"
+        fallback="That question could not be turned into a rankings query."
+        ready={(data) => Boolean(data.ok && data.stat && data.agg && data.order && data.limit && data.limit > 0)}
+        onResult={(data) =>
+          onSubmit(
+            data.agg ?? "",
+            data.stat ?? "",
+            data.order ?? "",
+            data.limit ?? 0,
+            data.team ?? "",
+            data.seasons ?? [],
+            data.stage ?? "",
+            data.filters ?? []
+          )
+        }
       />
 
       <QueryCard

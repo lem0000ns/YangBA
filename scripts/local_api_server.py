@@ -14,7 +14,7 @@ sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
 import common.load_env  # noqa: E402,F401  repo-root .env before MySQL/S3 imports
-from query.nl_stats import ask_stats  # noqa: E402
+from ask import lambda_handler as ask_handler  # noqa: E402
 from routeHandler import lambda_handler  # noqa: E402
 
 PORT = int(os.environ.get("YBA_LOCAL_API_PORT", "8765"))
@@ -82,17 +82,15 @@ class YangBAHandler(BaseHTTPRequestHandler):
                 }
             )
             return
-        text = payload.get("text", "") if isinstance(payload, dict) else ""
-        if not isinstance(text, str):
+        if not isinstance(payload, dict):
             self._write(
                 {
                     "statusCode": 400,
-                    "body": json.dumps({"ok": False, "error": "The question must be text."}),
+                    "body": json.dumps({"ok": False, "error": "The request body must be JSON."}),
                 }
             )
             return
-        status, body = ask_stats(text)
-        self._write({"statusCode": status, "body": json.dumps(body)})
+        self._write(ask_handler({"body": raw, "isBase64Encoded": False}, None))
 
 
 def main():

@@ -10,6 +10,7 @@ import {
 } from "../components/All";
 import { DEFAULT_STAGE, GAME_FILTER_STATS } from "../constants";
 import { QueryDraft, getStatInfo } from "../utilities";
+import AskBox from "./AskBox";
 import { SeasonPicker, StagePicker, allNames, describeSeasons } from "./queryFields";
 
 interface Props {
@@ -33,13 +34,10 @@ const GamesForm = ({ onSubmit }: Props) => {
   const [error, setError] = useState("");
   const [formKey, setFormKey] = useState(0);
 
-  /** Validates the game limit and submits the games query. */
+  /** Submits the games query. A blank count means every matching game. */
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const missingScope = nameValue == "" && filters.length == 0;
-    if (limit == -1 && missingScope) setError("Choose how many games to show, and a player or a filter.");
-    else if (limit == -1) setError("Choose how many games to show.");
-    else if (missingScope) setError("Choose a player or add a filter.");
+    if (nameValue == "" && filters.length == 0) setError("Choose a player or add a filter.");
     else onSubmit(nameValue, seasons, filters, limit, stage);
   };
 
@@ -55,8 +53,8 @@ const GamesForm = ({ onSubmit }: Props) => {
   };
 
   const preview =
-    limit == -1
-      ? "Choose how many games to show."
+    nameValue == "" && filters.length == 0
+      ? "Choose a player or add a filter."
       : getStatInfo(nameValue, "", "", seasons, filters, "", limit, "", stage);
 
   return (
@@ -69,6 +67,26 @@ const GamesForm = ({ onSubmit }: Props) => {
         description="Get box scores that match your filters."
       />
 
+      <AskBox
+        page="games"
+        hint="A player or a filter. Leave the count out to show every game."
+        placeholder="Stephen Curry's games"
+        ariaLabel="Games question"
+        fallback="That question could not be turned into a games query."
+        ready={(data) =>
+          Boolean(data.ok && (data.name || data.filters?.length) && (data.limit == null || data.limit > 0))
+        }
+        onResult={(data) =>
+          onSubmit(
+            data.name ?? "",
+            data.seasons ?? [],
+            data.filters ?? [],
+            data.limit == null || data.limit < 1 ? -1 : data.limit,
+            data.stage ?? ""
+          )
+        }
+      />
+
       <QueryCard
         key={formKey}
         title="Game search"
@@ -78,7 +96,7 @@ const GamesForm = ({ onSubmit }: Props) => {
         preview={preview}
         error={error}
       >
-        <QueryControl label="Number of games" required invalid={!!error && limit == -1}>
+        <QueryControl label="Number of games">
           <NumberField
             value={limit}
             onChange={(value) => {

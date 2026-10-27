@@ -10,6 +10,7 @@ import {
 } from "../utilities.tsx";
 import {
   ArrowLeft,
+  ArrowRight,
   Button,
   EmptyState,
   FilterPill,
@@ -28,7 +29,7 @@ import {
   TrendUp,
 } from "../components/All.tsx";
 import type { Column } from "../components/Table.tsx";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   STAGE_LABELS,
@@ -66,6 +67,9 @@ interface RankRow {
 }
 
 const baseURL = apiBaseUrl;
+const GAMES_PAGE_SIZE = 25;
+/** Blank count. The live games route still requires a limit, and 0 means return nothing. */
+const ALL_GAMES_LIMIT = 100000;
 
 const fields = [
   "name",
@@ -187,17 +191,26 @@ const ResultsPage = ({ path }: Props) => {
   const seasonsList = draft.seasons ?? [];
   const filtersList = draft.filters ?? [];
   const cacheKey = resultsPath(path, { ...draft, agg, seasons: seasonsList, filters: filtersList });
-  const cached = readResultCache(cacheKey);
+  const stored = readResultCache(cacheKey);
+  const cached =
+    path == "games" && Array.isArray(stored?.result) && stored.result.length == 0 ? null : stored;
   const [result, setResult] = useState<any>(cached?.result);
   const [statInfo, setStatInfo] = useState(cached?.statInfo ?? "");
   const [percentile, setPercentile] = useState<number | null>(cached?.percentile ?? null);
   const [resolvedName, setResolvedName] = useState(cached?.resolvedName ?? "");
   const [error, setError] = useState("");
+  const [gamePage, setGamePage] = useState(0);
+  const gameTable = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = readResultCache(cacheKey);
-    if (stored) {
-      applyPayload(stored, setResult, setStatInfo, setPercentile, setResolvedName);
+    setGamePage(0);
+  }, [cacheKey]);
+
+  useEffect(() => {
+    const storedNow = readResultCache(cacheKey);
+    const saved = path == "games" && Array.isArray(storedNow?.result) && storedNow.result.length == 0 ? null : storedNow;
+    if (saved) {
+      applyPayload(saved, setResult, setStatInfo, setPercentile, setResolvedName);
       setError("");
       return;
     }
@@ -206,7 +219,17 @@ const ResultsPage = ({ path }: Props) => {
     const requestUrl =
       baseURL +
       `${path}?` +
-      computeURL(name, stat, agg, seasonsList, filtersList, limit, order, team, stage);
+      computeURL(
+        name,
+        stat,
+        agg,
+        seasonsList,
+        filtersList,
+        path == "games" && limit == -1 ? ALL_GAMES_LIMIT : limit,
+        order,
+        team,
+        stage
+      );
 
     setResult(undefined);
     setStatInfo("");
@@ -334,6 +357,16 @@ const ResultsPage = ({ path }: Props) => {
     const points = games.map((g) => Number(g.points) || 0);
     const best = games[points.indexOf(Math.max(...points))];
     const fpts = games.map((g) => g.FPTS);
+    const pageCount = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
+    const page = Math.min(gamePage, pageCount - 1);
+    const start = page * GAMES_PAGE_SIZE;
+    const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
+    const rangeEnd = start + pageRows.length;
+    /** Shows another page of stat lines and brings that table back into view. */
+    const showGamePage = (next: number) => {
+      setGamePage(next);
+      gameTable.current?.scrollIntoView({ block: "start" });
+    };
     return (
       <div className="page page-results">
         {header(
@@ -360,8 +393,40 @@ const ResultsPage = ({ path }: Props) => {
             delay={180}
           />
         </div>
-        <ResultCard flush title="Stat lines" eyebrow={`${games.length} ${games.length == 1 ? "game" : "games"}`}>
-          <Table columns={gameColumns(Math.max(...fpts, 1))} rows={games} rowKey={(row, i) => `${row.gameID}-${row.playerID}-${i}`} />
+        <ResultCard
+          flush
+          title="Stat lines"
+          eyebrow={
+            pageCount > 1
+              ? `${start + 1}–${rangeEnd} of ${games.length}`
+              : `${games.length} ${games.length == 1 ? "game" : "games"}`
+          }
+        >
+          <div className="game-log" ref={gameTable}>
+            <Table
+              columns={gameColumns(Math.max(...fpts, 1))}
+              rows={pageRows}
+              rowKey={(row, i) => `${row.gameID}-${row.playerID}-${i}`}
+            />
+            {pageCount > 1 && (
+              <nav className="table-pager" aria-label="Stat line pages">
+                <button type="button" aria-label="Previous page" disabled={page == 0} onClick={() => showGamePage(page - 1)}>
+                  <ArrowLeft size={16} />
+                </button>
+                <span className="table-pager-label tabular">
+                  {page + 1} / {pageCount}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next page"
+                  disabled={page == pageCount - 1}
+                  onClick={() => showGamePage(page + 1)}
+                >
+                  <ArrowRight size={16} />
+                </button>
+              </nav>
+            )}
+          </div>
         </ResultCard>
       </div>
     );

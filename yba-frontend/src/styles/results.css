@@ -436,6 +436,50 @@
   border-radius: 0 0 16px 16px;
 }
 
+.game-log .table-scroll {
+  border-radius: 0;
+}
+
+.table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 14px 22px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.table-pager button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--wool);
+  color: var(--charcoal);
+  cursor: pointer;
+}
+
+.table-pager button:hover:not(:disabled) {
+  background: var(--cream-2);
+}
+
+.table-pager button:disabled {
+  color: var(--stone);
+  cursor: default;
+  opacity: 0.45;
+}
+
+.table-pager-label {
+  min-width: 4.5rem;
+  color: var(--gray);
+  font-size: 13px;
+  text-align: center;
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;

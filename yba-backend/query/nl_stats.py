@@ -40,6 +40,11 @@ FILTER_STATS = [stat for stat in STATS if stat != "games"]
 AGGS = {"sum", "avg", "max", "min"}
 SEASONS = {str(year) for year in range(2016, 2027)}
 DEFAULT_STAGE = "Regular Season"
+LAST_SEASON = "2026"  # 2025–26, the latest season on file
+MAX_QUESTION = 200
+TOO_LONG = "Keep the question to 200 characters."
+_ALL_STAGES = re.compile(r"\b(?:all|every|any) stages?\b", re.IGNORECASE)
+_ALL_SEASONS = re.compile(r"\b(?:all|every|any) seasons?\b", re.IGNORECASE)
 STAGES = {
     "": "",
     "all": "",
@@ -76,7 +81,7 @@ Fields
 - name: required. Exactly one player. Never "". "Steph Curry" → "Stephen Curry" when the person is unambiguous. If the question does not name a player, or you are not sure who it is, fail. Two players, "and", "vs", or a combined total for more than one player must fail. Example to reject: combined points for Stephen Curry and James Harden. A filter ("in games where he played more than 30 minutes") does not erase the player. If a player is named, never use the missing-player error.
 - stat: exactly one of points, fgm, fga, ftm, fta, 3pm, 3pa, 3pct, fgpct, ftpct, ast, reb, steals, blocks, turnovers, fpts, min, games. Two answer stats ("points and assists") must fail. A second stat is allowed only as a filter that decides which games count.
 - agg: sum, avg, max, or min.
-- seasons: ending years as strings. [] means every season on file. The file covers ending years 2016 through 2026 (the 2015–16 season through the 2025–26 season).
+- seasons: ending years as strings. No season mentioned → ["2026"], the 2025–26 season. [] means every season, and only when the question says all seasons or every season. The file covers ending years 2016 through 2026.
 - filters: game constraints, each "stat>number", "stat<number", or "stat=number". [] means no extra constraint. Stats inside filters are the same list as stat, except games. Percentages are decimals (40% is 0.40).
 - stage: "Preseason", "Regular Season", "Playoffs", or "" for every stage.
 
@@ -88,9 +93,10 @@ A year used as a season is the year that season ends.
 - "seasons 2022 and 2023" are ["2022", "2023"]: the 2021–2022 and 2022–2023 seasons.
 - "2022-23 through 2024-25" are ["2023", "2024", "2025"].
 - "2021 playoffs" are seasons ["2021"] and stage "Playoffs" (the playoffs of the season that ends in 2021).
-- No season mentioned → [].
+- No season mentioned → ["2026"], the 2025–26 season.
+- "this season" and "last season" are ["2026"].
+- "all seasons" or "every season" → [].
 - An ending year outside 2016–2026 must fail. "season 2015" is 2014–15 and is out of range. "2015-16" is in range and is ["2016"].
-- "this season" or "last season", with no year, must fail. Do not guess the year.
 
 Stat phrases
 - points, pts, scored → points
@@ -138,13 +144,13 @@ Also fail when
 
 Examples
 "Stephen Curry points per game"
-{"ok": true, "name": "Stephen Curry", "stat": "points", "agg": "avg", "seasons": [], "filters": [], "stage": "Regular Season"}
+{"ok": true, "name": "Stephen Curry", "stat": "points", "agg": "avg", "seasons": ["2026"], "filters": [], "stage": "Regular Season"}
 
 "how many threes did stephen curry hit in 2022-2023?"
 {"ok": true, "name": "Stephen Curry", "stat": "3pm", "agg": "sum", "seasons": ["2023"], "filters": [], "stage": "Regular Season"}
 
 "Stephen Curry points per game"
-{"ok": true, "name": "Stephen Curry", "stat": "points", "agg": "avg", "seasons": [], "filters": [], "stage": "Regular Season"}
+{"ok": true, "name": "Stephen Curry", "stat": "points", "agg": "avg", "seasons": ["2026"], "filters": [], "stage": "Regular Season"}
 
 "how many threes did stephen curry hit in season 2023?"
 {"ok": true, "name": "Stephen Curry", "stat": "3pm", "agg": "sum", "seasons": ["2023"], "filters": [], "stage": "Regular Season"}
@@ -156,7 +162,7 @@ Examples
 {"ok": true, "name": "Luka Doncic", "stat": "games", "agg": "sum", "seasons": ["2024"], "filters": ["points>49"], "stage": "Regular Season"}
 
 "how many points did brandin podziemski score in games where he played more than 30 minutes?"
-{"ok": true, "name": "Brandin Podziemski", "stat": "points", "agg": "sum", "seasons": [], "filters": ["min>30"], "stage": "Regular Season"}
+{"ok": true, "name": "Brandin Podziemski", "stat": "points", "agg": "sum", "seasons": ["2026"], "filters": ["min>30"], "stage": "Regular Season"}
 
 "total threes in season 2022"
 {"ok": false, "error": "A stats query has to name one player."}
@@ -193,6 +199,13 @@ def _load_names() -> list[str]:
     if not _NAMES_PATH.is_file():
         return []
     return [line.strip() for line in _NAMES_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def fill_seasons(question: str, seasons: list[str]) -> list[str]:
+    """Use 2025–26 when the question does not name a season or ask for every season."""
+    if seasons or _ALL_SEASONS.search(question):
+        return seasons
+    return [LAST_SEASON]
 
 
 def names_in(text: str, names: list[str] | None = None) -> list[str]:
@@ -241,7 +254,7 @@ def _normalize_season(value: object) -> str | None:
     return None
 
 
-def _parse_filter(token: object) -> tuple[str | None, str | None]:
+def _parse_filter(token: object, allowed: set[str] | None = None) -> tuple[str | None, str | None]:
     if not isinstance(token, str):
         return None, "A filter has to be a stat, a comparison, and a number."
     compact = token.replace(" ", "")
@@ -259,7 +272,7 @@ def _parse_filter(token: object) -> tuple[str | None, str | None]:
         return None, "A filter has to be a stat, a comparison, and a number."
     stat = compact[:op_index].lower()
     number = compact[op_index + 1 :]
-    if stat not in FILTER_STATS:
+    if stat not in (FILTER_STATS if allowed is None else allowed):
         return None, f"{stat or 'That'} is not a filter this page can use."
     if not re.fullmatch(r"\d+(?:\.\d+)?", number):
         return None, "A filter value has to be a number."
@@ -329,6 +342,7 @@ def validate(question: str, payload: object) -> dict:
         if season not in seasons:
             seasons.append(season)
     seasons.sort()
+    seasons = fill_seasons(question, seasons)
 
     raw_filters = payload.get("filters", [])
     if raw_filters is None:
@@ -354,6 +368,9 @@ def validate(question: str, payload: object) -> dict:
         if key not in STAGES:
             return _error("That stage is not preseason, regular season, or playoffs.")
         stage = STAGES[key]
+
+    if not stage and not _ALL_STAGES.search(question):
+        stage = DEFAULT_STAGE
 
     return {
         "ok": True,
@@ -384,13 +401,13 @@ def _parse_json_object(raw: str) -> dict:
     return payload
 
 
-def _complete(question: str, reminder: str = "") -> str:
+def _complete(question: str, reminder: str = "", system: str | None = None) -> str:
     key = os.getenv("NL_API_KEY", "").strip()
     if not key:
         raise _ConfigError("NL_API_KEY is not set.")
     base = os.getenv("NL_API_BASE", "https://api.openai.com/v1").rstrip("/")
     model = os.getenv("NL_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": system or SYSTEM_PROMPT}]
     if reminder:
         messages.append({"role": "system", "content": reminder})
     messages.append({"role": "user", "content": question})
@@ -431,8 +448,8 @@ def ask_stats(text: str) -> tuple[int, dict]:
     question = (text or "").strip()
     if not question:
         return 200, _error("Enter a question.")
-    if len(question) > 500:
-        return 200, _error("Ask a shorter question.")
+    if len(question) > MAX_QUESTION:
+        return 200, _error(TOO_LONG)
     if len(names_in(question)) >= 2:
         return 200, _error(ONE_PLAYER)
     try:
@@ -520,6 +537,11 @@ def _self_check() -> None:
     del default_stage["stage"]
     assert validate("no stage", default_stage)["stage"] == "Regular Season"
 
+    latest = dict(curry, seasons=[])
+    assert validate("Stephen Curry threes per game", latest)["seasons"] == ["2026"]
+    every = dict(curry, seasons=[])
+    assert validate("Stephen Curry threes per game across all seasons", every)["seasons"] == []
+
     assert _normalize_season("2022-23") == "2023"
     assert _normalize_season("2022/23") == "2023"
 
@@ -527,6 +549,8 @@ def _self_check() -> None:
     assert status == 200 and body == {"ok": False, "error": ONE_PLAYER}
     status, body = ask_stats("   ")
     assert status == 200 and body["error"] == "Enter a question."
+    status, body = ask_stats("x" * (MAX_QUESTION + 1))
+    assert status == 200 and body["error"] == TOO_LONG
     print("nl_stats checks passed")
 
 

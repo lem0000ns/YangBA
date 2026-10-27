@@ -178,7 +178,7 @@
 }
 
 .query-control-tag {
-  color: var(--stone);
+  color: var(--gray);
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.02em;

@@ -201,5 +201,6 @@ cython_debug/
 
 # Lambda deploy zips
 yba-backend/routeHandler.zip
+yba-backend/askHandler.zip
 yba-backend/yba.zip
 yba.zip

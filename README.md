@@ -74,7 +74,7 @@ Browser (React + Vite)
 | `content/PlayerInfo.tsx` — profile | `players` row from Wikipedia scrape |
 | `constants.ts`, `utilities.tsx` — labels & API encoding | Env: `SECRETS_MANAGER_CONTRASENA` |
 
-**Local dev** runs the frontend (`npm run dev`). By default it calls the **deployed** API. To query **local routeHandler** against RDS, set `VITE_API_BASE_URL=http://127.0.0.1:8765/` (see [Local API](#local-api) below).
+**Local dev** runs the frontend (`npm run dev`). By default it calls the **deployed** API. To query **local routeHandler** against RDS, set `VITE_API_BASE_URL=http://127.0.0.1:8765/` in `.env.development.local` (see [Local API](#local-api) below). That file is not read by a production build.
 
 **Season note:** UI season labels are the **ending year** of a season (e.g. `2017` = 2016–17). The API is called with `season = UI value − 1`.
 
@@ -100,7 +100,7 @@ The scheduled run loads the newest API season into S3 and MySQL. Older seasons a
 
 Optional **`imageDump.py`** Lambda scrapes RealGM headshots into S3 (`allPlayerImages/`), served via CloudFront for `PlayerAvatar`.
 
-`yba-deploy` does **not** update `dataDump` or `imageDump`—only **`routeHandler`** and the static frontend.
+`yba-deploy` does **not** update `dataDump` or `imageDump`—only **`routeHandler`**, **`askHandler`**, and the static frontend.
 
 ---
 
@@ -142,7 +142,7 @@ python scripts/local_api_server.py
 
 # Terminal 2 — frontend → local API
 cd yba-frontend
-echo 'VITE_API_BASE_URL=http://127.0.0.1:8765/' > .env.local
+echo 'VITE_API_BASE_URL=http://127.0.0.1:8765/' > .env.development.local
 npm run dev
 ```
 
@@ -152,7 +152,7 @@ Smoke test: **Stats** and **Games** for the **current season** (e.g. UI season *
 
 ## Deploy (production site + query API)
 
-Requires AWS CLI credentials with access to Lambda `routeHandler`, S3 bucket `yangba.net`, and CloudFront distribution `E30O7MBF2BTRPG`.
+Requires AWS CLI credentials with access to Lambdas `routeHandler` and `askHandler`, S3 bucket `yangba.net`, and CloudFront distribution `E30O7MBF2BTRPG`.
 
 From repo root:
 
@@ -170,9 +170,12 @@ The script will:
 
 1. Commit all dirty files (if any) with your message and push `origin/<current-branch>`.
 2. Zip and upload `routeHandler.py` plus `query/routeHandler.py` and `query/query_utilities.py` to Lambda **`routeHandler`** (`us-west-1`). The handler setting stays `routeHandler.lambda_handler`.
-3. `npm run build` and `aws s3 sync` to **`s3://yangba.net`**, then invalidate CloudFront **`/*`**.
+3. Zip and upload `ask.py`, `query/nl_stats.py`, `query/nl_pages.py`, `common/load_env.py`, and `data/allNames.txt` to Lambda **`askHandler`**. The handler setting stays `ask.lambda_handler`. Code upload does not change `NL_API_KEY` or the VPC setting.
+4. `npm run build` and `aws s3 sync` to **`s3://yangba.net`**, then invalidate CloudFront **`/*`**.
 
 **Lambda environment (query API):** `SECRETS_MANAGER_CONTRASENA` — MySQL password.
+
+**Lambda environment (natural language):** `NL_API_KEY` on `askHandler`.
 
 **Lambda environment (ETL only):** `SECRETS_MANAGER_CONTRASENA`, `API_SPORTS_KEY`.
 
