@@ -78,7 +78,7 @@ The error is one plain sentence. On failure, do not include the other fields.
 This is only the stats page: one number for one player. It is not a league total, a leaderboard, a list of games, or a comparison.
 
 Fields
-- name: required. Exactly one player. Never "". "Steph Curry" → "Stephen Curry" when the person is unambiguous. If the question does not name a player, or you are not sure who it is, fail. Two players, "and", "vs", or a combined total for more than one player must fail. Example to reject: combined points for Stephen Curry and James Harden. A filter ("in games where he played more than 30 minutes") does not erase the player. If a player is named, never use the missing-player error.
+- name: required. Exactly one player. Never "". "Steph Curry" → "Stephen Curry" when the person is unambiguous. If the question does not name a player, or you are not sure who it is, fail. Two players, "and", "vs", or a combined total for more than one player must fail. Example to reject: combined points for Stephen Curry and James Harden. A shared last name is still one player: "Kyshawn George" is one person even though other players are also named George. A filter ("in games where he played more than 30 minutes") does not erase the player. If a player is named, never use the missing-player error.
 - stat: exactly one of points, fgm, fga, ftm, fta, 3pm, 3pa, 3pct, fgpct, ftpct, ast, reb, steals, blocks, turnovers, fpts, min, games. Two answer stats ("points and assists") must fail. A second stat is allowed only as a filter that decides which games count.
 - agg: sum, avg, max, or min.
 - seasons: ending years as strings. No season mentioned → ["2026"], the 2025–26 season. [] means every season, and only when the question says all seasons or every season. The file covers ending years 2016 through 2026.
@@ -96,6 +96,7 @@ A year used as a season is the year that season ends.
 - No season mentioned → ["2026"], the 2025–26 season.
 - "this season" and "last season" are ["2026"].
 - "all seasons" or "every season" → [].
+- "career", including "career high" and "career low", with no year → []. That is every season on file, not ["2026"].
 - An ending year outside 2016–2026 must fail. "season 2015" is 2014–15 and is out of range. "2015-16" is in range and is ["2016"].
 
 Stat phrases
@@ -113,8 +114,8 @@ Metric example keywords
 - how many, total, number of → sum
 - "per game" or "average" → avg.
 - a percentage across the chosen games → avg. Never sum a percentage.
-- best game, most in a game, single-game high → max
-- worst game, fewest in a game, single-game low → min
+- best game, most in a game, single-game high, career high, career best → max
+- worst game, fewest in a game, single-game low, career low, career worst → min
 - games is always sum
 - Fail only when the question never says or implies total, per game, best game, or worst game. "How many" implies sum. "Stephen Curry threes" does not, so it fails. "Stephen Curry points per game" does not fail.
 
@@ -145,6 +146,9 @@ Also fail when
 Examples
 "Stephen Curry points per game"
 {"ok": true, "name": "Stephen Curry", "stat": "points", "agg": "avg", "seasons": ["2026"], "filters": [], "stage": "Regular Season"}
+
+"kyshawn george career high assists"
+{"ok": true, "name": "Kyshawn George", "stat": "ast", "agg": "max", "seasons": [], "filters": [], "stage": "Regular Season"}
 
 "how many threes did stephen curry hit in 2022-2023?"
 {"ok": true, "name": "Stephen Curry", "stat": "3pm", "agg": "sum", "seasons": ["2023"], "filters": [], "stage": "Regular Season"}
@@ -203,6 +207,8 @@ def _load_names() -> list[str]:
 
 def fill_seasons(question: str, seasons: list[str]) -> list[str]:
     """Use 2025–26 when the question does not name a season or ask for every season."""
+    if re.search(r"\bcareer\b", question, flags=re.IGNORECASE) and not re.search(r"\b(?:19|20)\d{2}\b", question):
+        return []
     if seasons or _ALL_SEASONS.search(question):
         return seasons
     return [LAST_SEASON]
@@ -322,6 +328,10 @@ def validate(question: str, payload: object) -> dict:
         return _error("That stat is not on the stats page.")
     if agg not in AGGS:
         return _error("The metric has to be a total, a per-game average, a best game, or a worst game.")
+    if re.search(r"\bcareer\s+(?:high|best)\b", question, flags=re.IGNORECASE):
+        agg = "max"
+    elif re.search(r"\bcareer\s+(?:low|worst)\b", question, flags=re.IGNORECASE):
+        agg = "min"
     if stat == "games" and agg != "sum":
         return _error("Games played can only be a total.")
     if stat in PCT_STATS and agg == "sum":
@@ -464,10 +474,11 @@ def ask_stats(text: str) -> tuple[int, dict]:
         return 200, _error(UNMAPPED)
     result = validate(question, payload)
     found = names_in(question)
-    if result.get("error") == NEED_PLAYER and len(found) == 1:
+    if len(found) == 1 and result.get("error") in (NEED_PLAYER, ONE_PLAYER):
         reminder = (
-            f"The question names {found[0]}. That player is present. "
-            "Do not fail because a player is missing. "
+            f"The question names exactly one player: {found[0]}. "
+            "A shared last name is not a second player. "
+            "Do not fail because a player is missing or because more than one player is named. "
             "Fail only for a real gap, such as one stat or the metric."
         )
         try:
@@ -541,6 +552,14 @@ def _self_check() -> None:
     assert validate("Stephen Curry threes per game", latest)["seasons"] == ["2026"]
     every = dict(curry, seasons=[])
     assert validate("Stephen Curry threes per game across all seasons", every)["seasons"] == []
+
+    career = dict(curry, name="Kyshawn George", stat="ast", agg="sum", seasons=["2026"])
+    career_high = validate("kyshawn george career high assists", career)
+    assert career_high["ok"] and career_high["name"] == "Kyshawn George"
+    assert career_high["stat"] == "ast" and career_high["agg"] == "max" and career_high["seasons"] == []
+    dated = dict(curry, stat="ast", agg="sum", seasons=["2024"])
+    dated_high = validate("kyshawn george career high assists in 2024", dated)
+    assert dated_high["ok"] and dated_high["agg"] == "max" and dated_high["seasons"] == ["2024"]
 
     assert _normalize_season("2022-23") == "2023"
     assert _normalize_season("2022/23") == "2023"
