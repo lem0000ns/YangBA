@@ -851,6 +851,11 @@
   animation-delay: 0.5s;
 }
 
+.loader.is-compact {
+  gap: 12px;
+  padding: 28px 16px 32px;
+}
+
 @keyframes count {
   0%,
   60%,

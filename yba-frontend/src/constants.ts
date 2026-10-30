@@ -158,13 +158,19 @@ export const computeFPTS = (s: Record<string, string | number>) => {
   );
 };
 
+/**
+ * New on each dev page load. Localhost and yangba.net do not share an image
+ * cache, so a stable URL was still showing the old RealGM portrait locally.
+ */
+const headshotDevBust = import.meta.env.DEV ? `?v=${Date.now()}` : "";
+
 /** CloudFront URL for a player's headshot JPG. */
 export const playerImageURL = (name: string) =>
   `https://d2qd9wn47agcqj.cloudfront.net/allPlayerImages/${name
     .replace(/[\s']/g, "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()}.jpg`;
+    .toLowerCase()}.jpg${headshotDevBust}`;
 
 /** Split an API filter token like `points>30` into stat, operator, and value. */
 export const parseFilter = (filter: string) => {

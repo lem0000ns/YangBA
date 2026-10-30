@@ -10,6 +10,14 @@ export interface Award {
   years?: string;
 }
 
+/** One stop on a player's career timeline. */
+export interface TeamStint {
+  year: string;
+  team: string;
+  affiliate: boolean;
+  current: boolean;
+}
+
 /** Normalize whitespace and strip citation markers from scraped text. */
 const tidy = (value: string) =>
   value
@@ -95,31 +103,46 @@ export const parseAwards = (value: string | null | undefined): Award[] => {
     .filter((award) => award.name);
 };
 
-/** Render career teams JSON from the database as a timeline list. */
-export const filterTeams = (teams: string) => {
-  let parsed: Record<string, string>[];
+/** Parse career teams JSON into timeline stops. */
+export const parseTeams = (teams: string | null | undefined): TeamStint[] => {
+  if (!teams) return [];
+  let parsed: unknown;
   try {
     parsed = JSON.parse(teams);
   } catch {
-    return null;
+    return [];
   }
-  if (!Array.isArray(parsed) || parsed.length == 0) return null;
+  if (!Array.isArray(parsed)) return [];
+  return parsed.flatMap((item) => {
+    if (!item || typeof item != "object") return [];
+    const entry = Object.entries(item as Record<string, string>)[0];
+    if (!entry) return [];
+    const year = cleanUnicode(String(entry[0]));
+    const rawTeam = cleanUnicode(String(entry[1]));
+    const affiliate = rawTeam.startsWith("\u2192");
+    return [{
+      year,
+      team: affiliate ? rawTeam.slice(1).trim() : rawTeam,
+      affiliate,
+      current: /present/i.test(year),
+    }];
+  });
+};
 
+/** Render career teams JSON from the database as a timeline list. */
+export const filterTeams = (teams: string) => {
+  const stints = parseTeams(teams);
+  if (!stints.length) return null;
   return (
     <ol className="timeline">
-      {parsed.map((item, index) => {
-        const [[rawYear, rawTeam]] = Object.entries(item);
-        const year = cleanUnicode(rawYear);
-        const team = cleanUnicode(rawTeam);
-        const affiliate = team.startsWith("\u2192");
-        const current = /present/i.test(year);
-        const className = [affiliate ? "is-affiliate" : "", current ? "is-current" : ""]
+      {stints.map((stint, index) => {
+        const className = [stint.affiliate ? "is-affiliate" : "", stint.current ? "is-current" : ""]
           .filter(Boolean)
           .join(" ");
         return (
-          <li key={`${year}-${team}-${index}`} className={className || undefined}>
-            <span className="timeline-year tabular">{year}</span>
-            <span className="timeline-team">{affiliate ? team.slice(1).trim() : team}</span>
+          <li key={`${stint.year}-${stint.team}-${index}`} className={className || undefined}>
+            <span className="timeline-year tabular">{stint.year}</span>
+            <span className="timeline-team">{stint.team}</span>
           </li>
         );
       })}

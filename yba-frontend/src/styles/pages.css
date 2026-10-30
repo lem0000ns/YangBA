@@ -581,7 +581,7 @@
 }
 
 .profile-facts {
-  margin: 16px 0;
+  margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--card);
@@ -646,15 +646,178 @@
   line-height: 1.35;
 }
 
-.profile-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+.profile-lower {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  margin-top: 16px;
+  min-width: 0;
 }
 
-.profile-columns > :only-child {
-  grid-column: 1 / -1;
+.profile-teams .result-card-body {
+  padding: 0 0 4px;
+}
+
+.career-table th.is-emphasis,
+.career-table td.is-emphasis {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.career-teams,
+.career-team,
+.career-panel,
+.career-panel-inner,
+.career-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.career-team + .career-team {
+  border-top: 1px solid var(--line);
+}
+
+.team-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.team-toggle.is-static {
+  cursor: default;
+}
+
+button.team-toggle:hover {
+  background: var(--wool);
+}
+
+.team-toggle-copy {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.team-toggle-name {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.career-team.is-current .team-toggle-name {
+  font-weight: 700;
+}
+
+.career-team.is-affiliate .team-toggle-name {
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.team-toggle-years {
+  color: var(--gray);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.team-chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--gray);
+  transform: rotate(-90deg);
+  transition: transform 0.2s ease;
+}
+
+.team-chevron.is-open {
+  transform: none;
+}
+
+.career-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.career-panel.is-open {
+  grid-template-rows: 1fr;
+}
+
+.career-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.career-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.career-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.career-table th,
+.career-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.career-table thead th {
+  padding-top: 2px;
+  padding-bottom: 8px;
+  border-bottom-color: var(--edge);
+  background: var(--cream-2);
+  color: var(--gray);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.career-table tbody th {
+  color: var(--charcoal);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.career-table td {
+  color: var(--charcoal);
+  background: var(--surface);
+}
+
+.career-table tbody tr:last-child th,
+.career-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.career-table .align-left {
+  padding-left: 22px;
+  text-align: left;
+}
+
+.career-table .align-right {
+  text-align: right;
+}
+
+.career-table th:last-child,
+.career-table td:last-child {
+  padding-right: 22px;
 }
 
 .timeline {
@@ -880,10 +1043,6 @@
 
   .profile-fact:first-child {
     border-top: 0;
-  }
-
-  .profile-columns {
-    grid-template-columns: 1fr;
   }
 
   .timeline {

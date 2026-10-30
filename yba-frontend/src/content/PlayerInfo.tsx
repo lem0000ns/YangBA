@@ -1,16 +1,17 @@
-import axios from "axios";
-import { apiBaseUrl } from "../apiConfig.ts";
 import { resultsPath } from "../utilities.tsx";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import CareerTeams from "./CareerTeams.tsx";
+import type { CareerGame } from "./careerSplits.ts";
+import { loadCareerGames, loadPlayer, readProfileCache, rememberProfile } from "./profileCache.ts";
 import {
-  filterTeams,
   parseAwards,
   parseBorn,
   parseDraft,
   parseMeasure,
   parsePlace,
   parsePlain,
+  parseTeams,
   type FactLine,
 } from "./filter.tsx";
 import {
@@ -34,23 +35,52 @@ const facts: { key: string; label: string; parse: (value: string | undefined) =>
 /** Fetches and displays a player profile from the API. */
 const PlayerInfo = () => {
   const { name } = useParams();
-  const [info, setInfo] = useState<any>();
+  const routeName = name ?? "";
+  const saved = routeName ? readProfileCache(routeName) : null;
+  const [shownName, setShownName] = useState(routeName);
+  const [info, setInfo] = useState<any>(saved?.player);
+  const [games, setGames] = useState<CareerGame[] | null | undefined>(saved ? saved.games : undefined);
+
+  if (routeName != shownName) {
+    const next = routeName ? readProfileCache(routeName) : null;
+    setShownName(routeName);
+    setInfo(next?.player);
+    setGames(next ? next.games : undefined);
+  }
 
   useEffect(() => {
-    setInfo(undefined);
-    axios
-      .get(
-        `${apiBaseUrl}players?name=${name}`
-      )
-      .then((response) => {
-        const playerData = response.data.player;
-        setInfo(playerData ?? "We don't have information on this player.");
+    if (!routeName) return;
+    if (readProfileCache(routeName)) return;
+    let cancel = false;
+    const playerRequest = loadPlayer(routeName);
+    const gamesRequest = loadCareerGames(routeName);
+    playerRequest
+      .then((player) => {
+        if (cancel) return;
+        setInfo(player ?? "We don't have information on this player.");
       })
       .catch((error) => {
+        if (cancel) return;
         setInfo("We don't have information on this player.");
         console.log(error);
       });
-  }, [name]);
+    gamesRequest
+      .then((rows) => {
+        if (!cancel) setGames(rows);
+      })
+      .catch((error) => {
+        if (!cancel) setGames(null);
+        console.log(error);
+      });
+    Promise.all([playerRequest, gamesRequest])
+      .then(([player, rows]) => rememberProfile(routeName, player, rows))
+      .catch(() => {
+        // A failed half is left uncached so the next visit can try again.
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [routeName]);
 
   if (!info) {
     return (
@@ -80,8 +110,9 @@ const PlayerInfo = () => {
     .filter((fact) => fact.lines.length > 0);
   const mainFacts = details.filter((fact) => fact.key != "high_school" && fact.key != "college");
   const schoolFacts = details.filter((fact) => fact.key == "high_school" || fact.key == "college");
-  const teams = info.teams ? filterTeams(info.teams) : null;
+  const stints = parseTeams(info.teams);
   const awards = parseAwards(info.awards);
+  const showTeams = stints.length > 0 || games === undefined || (games != null && games.length > 0);
 
   return (
     <div className="page page-player">
@@ -129,9 +160,17 @@ const PlayerInfo = () => {
         </div>
       )}
 
-      {(teams || awards.length > 0) && (
-        <div className="profile-columns">
-          {teams && <ResultCard title="Teams">{teams}</ResultCard>}
+      {(showTeams || awards.length > 0) && (
+        <div className="profile-lower">
+          {showTeams && (
+            <ResultCard title="Teams" className="profile-teams">
+              {games === undefined ? (
+                <Loader compact label="Loading season stats" />
+              ) : (
+                <CareerTeams key={info.name} stints={stints} games={games ?? []} />
+              )}
+            </ResultCard>
+          )}
           {awards.length > 0 && (
             <ResultCard title="Awards">
               <ul className="awards">
