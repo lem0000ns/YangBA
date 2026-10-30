@@ -367,12 +367,20 @@ const ResultsPage = ({ path }: Props) => {
       setGamePage(next);
       gameTable.current?.scrollIntoView({ block: "start" });
     };
+    const playerName = name ? games.find((game) => game.name)?.name || name : "";
     return (
       <div className="page page-results">
         {header(
           <Button to={formPath} state={{ draft }} variant="secondary" size="sm">
             Edit search
           </Button>
+        )}
+        {playerName && (
+          <div className="games-player">
+            <PlayerCard name={playerName} meta={seasonsList.length ? describeSeasons(seasonsList) : "All seasons"}>
+              <p className="player-card-note">Game log</p>
+            </PlayerCard>
+          </div>
         )}
         <div className="stat-row">
           <StatCard label="Games" value={games.length} />

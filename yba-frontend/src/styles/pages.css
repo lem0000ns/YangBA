@@ -516,7 +516,7 @@
 
 .profile-hero {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   align-items: center;
   gap: 40px;
   padding: 28px;
@@ -795,7 +795,7 @@
   }
 
   .profile-hero {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     gap: 28px;
   }
 
@@ -860,7 +860,9 @@
   }
 
   .profile-portrait {
-    max-width: 200px;
+    justify-self: center;
+    width: min(100%, 300px);
+    max-width: 300px;
   }
 
   .profile-facts-row {
