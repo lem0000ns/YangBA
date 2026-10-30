@@ -29,9 +29,10 @@ import {
   TrendUp,
 } from "../components/All.tsx";
 import type { Column } from "../components/Table.tsx";
-import { ReactNode, useState, useEffect, useRef } from "react";
+import { ReactNode, useState, useEffect, useRef, type RefObject } from "react";
 import axios from "axios";
 import {
+  PCT_STATS,
   STAGE_LABELS,
   TEAMS,
   computeFPTS,
@@ -160,6 +161,258 @@ const gameColumns = (maxFpts: number): Column<GameRow>[] => fields.map((field) =
   }
 });
 
+const COUNTING_STATS = [
+  "min",
+  "points",
+  "fgm",
+  "fga",
+  "3pm",
+  "3pa",
+  "ftm",
+  "fta",
+  "reb",
+  "ast",
+  "steals",
+  "blocks",
+  "turnovers",
+  "fpts",
+];
+
+const SUMMARY_FIELDS = [
+  "games",
+  "min",
+  "points",
+  "fgm",
+  "fga",
+  "fgpct",
+  "3pm",
+  "3pa",
+  "3pct",
+  "ftm",
+  "fta",
+  "ftpct",
+  "reb",
+  "ast",
+  "steals",
+  "blocks",
+  "turnovers",
+  "fpts",
+];
+
+const RATE_ATTEMPTS: Record<string, [string, string]> = {
+  fgpct: ["fgm", "fga"],
+  "3pct": ["3pm", "3pa"],
+  ftpct: ["ftm", "fta"],
+};
+
+const BOX_FIELDS = [
+  "gameDate",
+  "stage",
+  "team",
+  "season",
+  "min",
+  "points",
+  "fgm",
+  "fga",
+  "fgpct",
+  "3pm",
+  "3pa",
+  "3pct",
+  "ftm",
+  "fta",
+  "ftpct",
+  "reb",
+  "ast",
+  "steals",
+  "blocks",
+  "turnovers",
+  "FPTS",
+];
+
+/** Makes divided by attempts for one game, or null when there were no attempts. */
+const shootingRate = (row: GameRow, stat: string) => {
+  const pair = RATE_ATTEMPTS[stat];
+  if (!pair) return null;
+  const attempts = Number(row[pair[1]]) || 0;
+  if (!attempts) return null;
+  return (Number(row[pair[0]]) || 0) / attempts;
+};
+
+/** The queried stat on one box score. Percentages with no attempts are skipped. */
+const gameStatValue = (row: GameRow, stat: string) => {
+  if (stat in RATE_ATTEMPTS) return shootingRate(row, stat);
+  const field = stat == "fpts" ? "FPTS" : stat;
+  const value = Number(row[field]);
+  return Number.isFinite(value) ? value : null;
+};
+
+/** Games tied for the highest or lowest value of one stat. */
+const extremeGames = (rows: GameRow[], stat: string, agg: "max" | "min") => {
+  const scored = rows.flatMap((row) => {
+    const value = gameStatValue(row, stat);
+    return value == null ? [] : [{ row, value }];
+  });
+  if (!scored.length) return [];
+  const target = scored.reduce(
+    (best, item) => (agg == "max" ? Math.max(best, item.value) : Math.min(best, item.value)),
+    scored[0].value
+  );
+  return scored.filter((item) => Math.abs(item.value - target) < 1e-6).map((item) => item.row);
+};
+
+/** One season line: totals or per-game averages, with shooting percentages from the combined makes and attempts. */
+const summarizeGames = (rows: GameRow[], agg: "avg" | "sum") => {
+  const totals: Record<string, number> = {};
+  for (const key of COUNTING_STATS) {
+    const field = key == "fpts" ? "FPTS" : key;
+    totals[key] = rows.reduce((sum, row) => sum + (Number(row[field]) || 0), 0);
+  }
+  const line: Record<string, number | null> = {
+    games: rows.length,
+  };
+  for (const key of COUNTING_STATS) {
+    line[key] = agg == "avg" && rows.length ? totals[key] / rows.length : totals[key];
+  }
+  for (const [stat, [made, attempts]] of Object.entries(RATE_ATTEMPTS)) {
+    line[stat] = totals[attempts] ? totals[made] / totals[attempts] : null;
+  }
+  return line;
+};
+
+/** Formats one cell of the average or total line. */
+const formatLineStat = (value: number | null, stat: string, agg: string) => {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (stat == "games") return value.toLocaleString();
+  if (PCT_STATS.includes(stat)) return formatStat(value, stat);
+  return formatStat(value, stat, agg);
+};
+
+/** Box-score columns for the games tied for a best or worst stat. */
+const boxScoreColumns = (highlight: string): Column<GameRow>[] => {
+  const marked = highlight == "fpts" ? "FPTS" : highlight;
+  return BOX_FIELDS.map((field) => {
+    const emphasis = field == marked;
+    if (field == "stage") {
+      return {
+        key: field,
+        label: "Stage",
+        align: "left" as const,
+        render: (row: GameRow) => (
+          <span className={`stage-tag stage-${row.stage}`}>{STAGE_LABELS[String(row.stage)] ?? row.stage}</span>
+        ),
+      };
+    }
+    if (field == "gameDate") {
+      return { key: field, label: "Date", align: "left" as const, render: (row: GameRow) => formatDate(row.gameDate) };
+    }
+    if (field == "team") return { key: field, label: "Team", align: "left" as const };
+    if (field == "season") {
+      return {
+        key: field,
+        label: "Season",
+        align: "left" as const,
+        render: (row: GameRow) => seasonLabel(String(Number(row.season) + 1)),
+      };
+    }
+    if (field in RATE_ATTEMPTS) {
+      return {
+        key: field,
+        label: statShort(field),
+        emphasis,
+        render: (row: GameRow) => {
+          const value = shootingRate(row, field);
+          return value == null ? "—" : formatStat(value, field);
+        },
+      };
+    }
+    return { key: field, label: statShort(field == "FPTS" ? "fpts" : field), emphasis };
+  });
+};
+
+/** One row of every box-score stat, with the queried column marked. */
+const summaryColumns = (highlight: string, agg: string): Column<Record<string, number | null>>[] =>
+  SUMMARY_FIELDS.map((field) => ({
+    key: field,
+    label: field == "games" ? "GP" : statShort(field),
+    align: field == "games" ? ("left" as const) : ("right" as const),
+    emphasis: field == highlight,
+    render: (row: Record<string, number | null>) => formatLineStat(row[field], field, agg),
+  }));
+
+/** Drops a cached stats payload that was saved before the box-score table existed. */
+const usableCache = (payload: CachedResult | null, path: string, player: string) => {
+  if (!payload) return null;
+  if (path == "games" && Array.isArray(payload.result) && payload.result.length == 0) return null;
+  if (path == "stats" && player != "" && payload.games === undefined) return null;
+  return payload;
+};
+
+/** Box scores tied for a best or worst stat, paged like the game log. */
+const ExtremeGames = ({
+  title,
+  rows,
+  highlight,
+  page,
+  onPage,
+  tableRef,
+}: {
+  title: string;
+  rows: GameRow[];
+  highlight: string;
+  page: number;
+  onPage: (page: number) => void;
+  tableRef: RefObject<HTMLDivElement>;
+}) => {
+  if (!rows.length) return null;
+  const pageCount = Math.max(1, Math.ceil(rows.length / GAMES_PAGE_SIZE));
+  const current = Math.min(page, pageCount - 1);
+  const start = current * GAMES_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + GAMES_PAGE_SIZE);
+  /** Shows another page of tied games and brings that table back into view. */
+  const showPage = (next: number) => {
+    onPage(next);
+    tableRef.current?.scrollIntoView({ block: "start" });
+  };
+  return (
+    <ResultCard
+      flush
+      className="stats-lines"
+      title={title}
+      eyebrow={
+        pageCount > 1
+          ? `${start + 1}–${start + pageRows.length} of ${rows.length}`
+          : `${rows.length} ${rows.length == 1 ? "game" : "games"}`
+      }
+    >
+      <div className="game-log" ref={tableRef}>
+        <Table
+          columns={boxScoreColumns(highlight)}
+          rows={pageRows}
+          rowKey={(row, i) => `${row.gameID}-${row.playerID}-${i}`}
+        />
+        {pageCount > 1 && (
+          <nav className="table-pager" aria-label="Box score pages">
+            <button type="button" aria-label="Previous page" disabled={current == 0} onClick={() => showPage(current - 1)}>
+              <ArrowLeft size={16} />
+            </button>
+            <span className="table-pager-label tabular">
+              {current + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              aria-label="Next page"
+              disabled={current == pageCount - 1}
+              onClick={() => showPage(current + 1)}
+            >
+              <ArrowRight size={16} />
+            </button>
+          </nav>
+        )}
+      </div>
+    </ResultCard>
+  );
+};
+
 /** Shares one request when the page effect runs twice before the response arrives. */
 const inflightResults = new Map<string, Promise<CachedResult>>();
 
@@ -169,12 +422,14 @@ const applyPayload = (
   setResult: (value: any) => void,
   setStatInfo: (value: string) => void,
   setPercentile: (value: number | null) => void,
-  setResolvedName: (value: string) => void
+  setResolvedName: (value: string) => void,
+  setBoxScores: (value: GameRow[] | null) => void
 ) => {
   setResult(payload.result);
   setStatInfo(payload.statInfo);
   setPercentile(payload.percentile);
   setResolvedName(payload.resolvedName);
+  setBoxScores(Array.isArray(payload.games) ? (payload.games as GameRow[]) : null);
 };
 
 /** Loads and renders stats, games, or rank results from the URL query string. */
@@ -192,12 +447,14 @@ const ResultsPage = ({ path }: Props) => {
   const filtersList = draft.filters ?? [];
   const cacheKey = resultsPath(path, { ...draft, agg, seasons: seasonsList, filters: filtersList });
   const stored = readResultCache(cacheKey);
-  const cached =
-    path == "games" && Array.isArray(stored?.result) && stored.result.length == 0 ? null : stored;
+  const cached = usableCache(stored, path, name);
   const [result, setResult] = useState<any>(cached?.result);
   const [statInfo, setStatInfo] = useState(cached?.statInfo ?? "");
   const [percentile, setPercentile] = useState<number | null>(cached?.percentile ?? null);
   const [resolvedName, setResolvedName] = useState(cached?.resolvedName ?? "");
+  const [boxScores, setBoxScores] = useState<GameRow[] | null>(
+    Array.isArray(cached?.games) ? (cached.games as GameRow[]) : null
+  );
   const [error, setError] = useState("");
   const [gamePage, setGamePage] = useState(0);
   const gameTable = useRef<HTMLDivElement>(null);
@@ -208,9 +465,9 @@ const ResultsPage = ({ path }: Props) => {
 
   useEffect(() => {
     const storedNow = readResultCache(cacheKey);
-    const saved = path == "games" && Array.isArray(storedNow?.result) && storedNow.result.length == 0 ? null : storedNow;
+    const saved = usableCache(storedNow, path, name);
     if (saved) {
-      applyPayload(saved, setResult, setStatInfo, setPercentile, setResolvedName);
+      applyPayload(saved, setResult, setStatInfo, setPercentile, setResolvedName, setBoxScores);
       setError("");
       return;
     }
@@ -235,43 +492,64 @@ const ResultsPage = ({ path }: Props) => {
     setStatInfo("");
     setPercentile(null);
     setResolvedName("");
+    setBoxScores(null);
     setError("");
 
     let pending = inflightResults.get(cacheKey);
     if (!pending) {
-      pending = axios.get(requestUrl).then((response) => {
-        if (path == "games") {
-          return {
-            result: (response.data.games ?? []).map((row: GameRow) => ({
-              ...row,
-              FPTS: row.FPTS != null ? Number(row.FPTS) : computeFPTS(row),
-            })),
-            statInfo: getStatInfo(name, "", "", seasonsList, filtersList, "", limit, "", stage),
-            percentile: null,
-            resolvedName: "",
-          };
-        }
-        if (path == "stats") {
-          const value = response.data[agg + "_" + stat];
-          if (typeof value != "number") throw new Error("missing stat in response");
-          return {
-            result: value,
-            statInfo: getStatInfo(name, stat, agg, seasonsList, filtersList, "", -1, "", stage),
-            percentile: response.data.percentile ? response.data.percentile : null,
-            resolvedName: response.data.name ?? name,
-          };
-        }
-        return {
-          result: response.data.result.map((item: any, index: number) => ({
-            rank: index + 1,
-            name: item.name,
-            value: item[agg + "_" + stat],
-          })),
-          statInfo: getStatInfo("", stat, agg, seasonsList, filtersList, team, limit, order, stage),
-          percentile: null,
-          resolvedName: "",
-        };
+      const withFantasy = (row: GameRow): GameRow => ({
+        ...row,
+        FPTS: row.FPTS != null ? Number(row.FPTS) : computeFPTS(row),
       });
+      pending = (
+        path == "stats"
+          ? Promise.all([
+              axios.get(requestUrl),
+              name
+                ? axios
+                    .get(
+                      baseURL +
+                        "games?" +
+                        computeURL(name, "", "", seasonsList, filtersList, ALL_GAMES_LIMIT, "", "", stage)
+                    )
+                    .then((gamesResponse) => (gamesResponse.data.games ?? []).map(withFantasy))
+                    .catch((gamesError) => {
+                      console.error(gamesError);
+                      return [] as GameRow[];
+                    })
+                : Promise.resolve(null),
+            ]).then(([response, games]) => {
+              const value = response.data[agg + "_" + stat];
+              if (typeof value != "number") throw new Error("missing stat in response");
+              return {
+                result: value,
+                statInfo: getStatInfo(name, stat, agg, seasonsList, filtersList, "", -1, "", stage),
+                percentile: response.data.percentile ? response.data.percentile : null,
+                resolvedName: response.data.name ?? name,
+                games,
+              };
+            })
+          : axios.get(requestUrl).then((response) => {
+              if (path == "games") {
+                return {
+                  result: (response.data.games ?? []).map(withFantasy),
+                  statInfo: getStatInfo(name, "", "", seasonsList, filtersList, "", limit, "", stage),
+                  percentile: null,
+                  resolvedName: "",
+                };
+              }
+              return {
+                result: response.data.result.map((item: any, index: number) => ({
+                  rank: index + 1,
+                  name: item.name,
+                  value: item[agg + "_" + stat],
+                })),
+                statInfo: getStatInfo("", stat, agg, seasonsList, filtersList, team, limit, order, stage),
+                percentile: null,
+                resolvedName: "",
+              };
+            })
+      );
       inflightResults.set(cacheKey, pending);
       pending.finally(() => inflightResults.delete(cacheKey));
     }
@@ -279,7 +557,7 @@ const ResultsPage = ({ path }: Props) => {
     pending
       .then((payload) => {
         if (cancelled) return;
-        applyPayload(payload, setResult, setStatInfo, setPercentile, setResolvedName);
+        applyPayload(payload, setResult, setStatInfo, setPercentile, setResolvedName, setBoxScores);
         writeResultCache(cacheKey, payload);
       })
       .catch((requestError) => {
@@ -450,6 +728,16 @@ const ResultsPage = ({ path }: Props) => {
       filters: filtersList,
       limit: 25,
     });
+    const matched =
+      boxScores && (agg == "max" || agg == "min") ? extremeGames(boxScores, stat, agg) : [];
+    const matchedTitle =
+      matched.length == 1
+        ? agg == "max"
+          ? "Best game"
+          : "Worst game"
+        : agg == "max"
+          ? "Best games"
+          : "Worst games";
 
     return (
       <div className="page page-results">
@@ -507,6 +795,30 @@ const ResultsPage = ({ path }: Props) => {
             </Button>
           )}
         </div>
+        {matched.length > 0 && (
+          <ExtremeGames
+            title={matchedTitle}
+            rows={matched}
+            highlight={stat}
+            page={gamePage}
+            onPage={setGamePage}
+            tableRef={gameTable}
+          />
+        )}
+        {boxScores && boxScores.length > 0 && (agg == "avg" || agg == "sum") && (
+          <ResultCard
+            flush
+            className="stats-lines"
+            title={agg == "avg" ? "Per-game averages" : "Totals"}
+            eyebrow={`${boxScores.length} ${boxScores.length == 1 ? "game" : "games"}`}
+          >
+            <Table
+              columns={summaryColumns(stat, agg)}
+              rows={[summarizeGames(boxScores, agg)]}
+              rowKey={() => "summary"}
+            />
+          </ResultCard>
+        )}
       </div>
     );
   }

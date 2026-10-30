@@ -117,7 +117,7 @@ Metric example keywords
 - best game, most in a game, single-game high, career high, career best → max
 - worst game, fewest in a game, single-game low, career low, career worst → min
 - games is always sum
-- Fail only when the question never says or implies total, per game, best game, or worst game. "How many" implies sum. "Stephen Curry threes" does not, so it fails. "Stephen Curry points per game" does not fail.
+- If the question never says or implies total, per game, best game, or worst game, use avg. Do not fail only because the metric was left out. "Stephen Curry threes" is avg. "Stephen Curry points per game" is avg. "How many" still implies sum. games stays sum even when no metric is named.
 
 Filters
 There is no >= or <=.
@@ -172,13 +172,13 @@ Examples
 {"ok": false, "error": "A stats query has to name one player."}
 
 "brandin podziemski stats in games where he played more than 30 minutes"
-{"ok": false, "error": "A stats query can only look up one stat. Say whether you want the total, the per-game average, the best game, or the worst game."}
+{"ok": false, "error": "A stats query can only look up one stat."}
 
 "combined points for stephen curry and james harden"
 {"ok": false, "error": "A stats query can only include one player."}
 
 "stephen curry threes"
-{"ok": false, "error": "Say whether you want the total, the per-game average, the best game, or the worst game."}
+{"ok": true, "name": "Stephen Curry", "stat": "3pm", "agg": "avg", "seasons": ["2026"], "filters": [], "stage": "Regular Season"}
 
 "top 10 scorers in season 2023"
 {"ok": false, "error": "This search answers one stat, not a leaderboard."}
@@ -479,7 +479,7 @@ def ask_stats(text: str) -> tuple[int, dict]:
             f"The question names exactly one player: {found[0]}. "
             "A shared last name is not a second player. "
             "Do not fail because a player is missing or because more than one player is named. "
-            "Fail only for a real gap, such as one stat or the metric."
+            "Fail only for a real gap, such as more than one stat. If the metric is not specified, use avg."
         )
         try:
             raw = _complete(question, reminder)
@@ -488,8 +488,7 @@ def ask_stats(text: str) -> tuple[int, dict]:
             result = _error(NEED_PLAYER)
         if result.get("error") == NEED_PLAYER:
             result = _error(
-                f"{found[0]} is named. Pick one stat, and say whether you want the total, "
-                "the per-game average, the best game, or the worst game."
+                f"{found[0]} is named. Pick one stat."
             )
     return 200, result
 

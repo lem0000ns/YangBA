@@ -25,6 +25,8 @@ export interface CachedResult {
   statInfo: string;
   percentile: number | null;
   resolvedName: string;
+  /** Box scores behind a stats result. Null when the query has no player. Missing on older cache entries. */
+  games?: Array<Record<string, string | number>> | null;
 }
 
 const RESULT_CACHE_PREFIX = "yba-result:";
@@ -94,6 +96,11 @@ export function readResultCache(key: string): CachedResult | null {
       statInfo: parsed.statInfo,
       percentile: typeof parsed.percentile == "number" ? parsed.percentile : null,
       resolvedName: parsed.resolvedName ?? "",
+      games: Object.prototype.hasOwnProperty.call(parsed, "games")
+        ? Array.isArray(parsed.games)
+          ? parsed.games
+          : null
+        : undefined,
     };
   } catch {
     return null;
